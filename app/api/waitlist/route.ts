@@ -9,6 +9,8 @@ const waitlistSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  console.log('[waitlist-api] BACKEND_API_URL:', process.env.BACKEND_API_URL)
+  console.log('[waitlist-api] Available env keys:', Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC_') || k === 'BACKEND_API_URL' || k === 'NODE_ENV'))
   const backendApiUrl = process.env.BACKEND_API_URL
 
   if (!backendApiUrl) {
