@@ -36,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+        <meta name="google-site-verification" content="3sMlk6H-uzQuQLCJQ7jO7oF1XXwm-tmyQagKEH7jGis" /> 
       </head>
       <body className={`${dmSans.variable} ${literata.variable} font-sans antialiased`} suppressHydrationWarning>
         <Script
