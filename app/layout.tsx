@@ -23,6 +23,11 @@ export const metadata: Metadata = {
     description: process.env.NEXT_PUBLIC_APP_DESCRIPTION,
     type: 'website',
   },
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
