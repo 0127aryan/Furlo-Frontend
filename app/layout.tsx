@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { DM_Sans, Literata } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 
 const dmSans = DM_Sans({
@@ -37,6 +38,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
       </head>
       <body className={`${dmSans.variable} ${literata.variable} font-sans antialiased`} suppressHydrationWarning>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-GKGESZZQVE"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-GKGESZZQVE');
+          `}
+        </Script>
         {children}
       </body>
     </html>
