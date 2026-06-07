@@ -10,16 +10,25 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     {
+      // New landing page (currently a dev placeholder, will be replaced)
       url: baseUrl,
       lastModified: new Date(),
-      changeFrequency: 'yearly',
+      changeFrequency: 'monthly',
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/privacy`,
+      // Original waitlist landing page, still live during development
+      url: `${baseUrl}/waitlist-users`,
       lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.8,
+      changeFrequency: 'yearly',
+      priority: 0.7,
+    },
+    {
+      // Privacy policy — old design, still the canonical privacy doc
+      url: `${baseUrl}/old-privacy-policy`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly',
+      priority: 0.6,
     },
   ]
 }

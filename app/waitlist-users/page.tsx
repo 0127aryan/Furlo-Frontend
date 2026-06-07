@@ -255,7 +255,7 @@ export default function Home() {
             {[
               { label: 'Instagram', href: 'https://www.instagram.com/furlo.pets?igsh=MTZhNmU1dmlrczFzOQ%3D%3D', target: '_blank', rel: 'noopener noreferrer' },
               { label: 'Contact', href: 'mailto:furlo.pets.app@gmail.com' },
-              { label: 'Privacy Policy', href: '/privacy' },
+              { label: 'Privacy Policy', href: '/old-privacy-policy' },
             ].map((link) => (
               <a
                 key={link.label}

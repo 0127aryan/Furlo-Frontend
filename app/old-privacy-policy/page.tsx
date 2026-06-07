@@ -976,7 +976,7 @@ export default function PrivacyPolicy() {
             </p>
           </div>
           <div className={styles.footerLinks}>
-            <Link href="/privacy" className={styles.footerLinkActive}>
+            <Link href="/old-privacy-policy" className={styles.footerLinkActive}>
               Privacy Policy
             </Link>
             <Link href="/" className={styles.footerLink}>
