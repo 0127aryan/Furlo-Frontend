@@ -14,7 +14,8 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
     posthog.init(POSTHOG_KEY, {
       api_host: POSTHOG_HOST,
       // Only capture events after explicit user consent (cookie banner)
-      opt_in_capturing_by_default: false,
+      // opt_out_capturing_by_default: true means no tracking until grantAnalyticsConsent() is called
+      opt_out_capturing_by_default: true,
       // Anonymize IPs
       ip: false,
       person_profiles: 'identified_only',
