@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { DM_Sans, Literata, Geist } from 'next/font/google'
+import { DM_Sans, Literata, Geist, Outfit, Plus_Jakarta_Sans } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
 import { cn } from "@/lib/utils";
@@ -16,6 +16,18 @@ const dmSans = DM_Sans({
 const literata = Literata({
   subsets: ['latin'],
   variable: '--font-literata',
+  display: 'swap',
+})
+
+const outfit = Outfit({
+  subsets: ['latin'],
+  variable: '--font-outfit',
+  display: 'swap',
+})
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-plus-jakarta-sans',
   display: 'swap',
 })
 
@@ -37,13 +49,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)} suppressHydrationWarning>
+    <html lang="en" className={cn("font-sans", geist.variable)} suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
         {/* <meta name="google-site-verification" content="3sMlk6H-uzQuQLCJQ7jO7oF1XXwm-tmyQagKEH7jGis" /> 
         <meta name="google-adsense-account" content="ca-pub-9411289097087946" /> */}
       </head>
-      <body className={`${dmSans.variable} ${literata.variable} font-sans antialiased`} suppressHydrationWarning>
+      <body className={`${dmSans.variable} ${literata.variable} ${outfit.variable} ${plusJakartaSans.variable} font-sans antialiased`} suppressHydrationWarning>
         {/* <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-GKGESZZQVE"
           strategy="afterInteractive"

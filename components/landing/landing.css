@@ -1,0 +1,42 @@
+/* ─── Landing Page Styles ─── */
+
+/* Font variable overrides for landing page */
+:root {
+  --font-outfit: var(--font-outfit);
+  --font-plus-jakarta-sans: var(--font-plus-jakarta-sans);
+}
+
+/* Floating card animation */
+@keyframes float-card {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+
+/* CTA pulse animation */
+@keyframes pulse-cta {
+  0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(232, 132, 58, 0.4); }
+  70%  { transform: scale(1.03); box-shadow: 0 0 0 18px rgba(232, 132, 58, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(232, 132, 58, 0); }
+}
+
+/* Hero reveal (runs on mount) */
+@keyframes hero-slide-in {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero-reveal {
+  animation: hero-slide-in 0.85s ease-out both;
+}
+
+/* Scroll reveal for feature sections */
+.section-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.75s ease-out, transform 0.75s ease-out;
+}
+
+.section-reveal.section-visible {
+  opacity: 1;
+  transform: translateY(0);
+}

@@ -13,7 +13,6 @@ export default function PrivacyPolicy() {
       ? process.env.NEXT_PUBLIC_LOGO_URL
       : "/logo.png";
   const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "Furlo";
-  const waitlistCount = process.env.NEXT_PUBLIC_WAITLIST_COUNT ?? "200";
 
   return (
     <div className={styles.pageWrapper}>
@@ -35,8 +34,8 @@ export default function PrivacyPolicy() {
               Community
             </Link>
           </div>
-          <Link href="/#waitlist" className={styles.navCta}>
-            Join Waitlist
+          <Link href="/join" className={styles.navCta}>
+            Join the Pack
           </Link>
         </div>
       </nav>
