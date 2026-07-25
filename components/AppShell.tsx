@@ -66,13 +66,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     recoverSession();
   }, [setUser, setActivePet])
 
-  // While not mounted (SSR), render nothing to avoid hydration issues
-  if (!mounted) {
-    return null
-  }
-
   return (
-    <>
+    <div suppressHydrationWarning>
       {!splashDone && (
         <SplashScreen
           minDuration={2000}
@@ -82,6 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Children are always in the DOM but hidden until splash finishes */}
       {/* This ensures fonts, scripts, and initial state begin loading immediately */}
       <div
+        suppressHydrationWarning
         style={{
           opacity: splashDone ? 1 : 0,
           transition: splashDone ? 'opacity 0.3s ease' : 'none',
@@ -90,6 +86,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         {children}
       </div>
-    </>
+    </div>
   )
 }

@@ -7,7 +7,7 @@ import { ComingSoonStrip, Footer } from '@/components/landing/Footer'
 
 export default function Home() {
   return (
-    <div style={{ background: '#fef9f3', minHeight: '100vh' }}>
+    <div suppressHydrationWarning style={{ background: '#fef9f3', minHeight: '100vh' }}>
       <Navbar />
       <HeroSection />
       <FeaturesSection />

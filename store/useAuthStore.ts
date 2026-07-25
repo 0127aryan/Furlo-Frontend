@@ -24,11 +24,16 @@ export interface OnboardingData {
   password?: string // Keep temp to auto-login or trigger final setup
   petName?: string
   petUsername?: string
+  petType?: string
+  customPetType?: string
   breed?: string
+  customBreed?: string
   city?: string
   gender?: 'male' | 'female' | 'unknown'
   bio?: string
   personalityTags?: string[]
+  customPersonalityTags?: string[]
+  avatarData?: string
 }
 
 interface AuthState {

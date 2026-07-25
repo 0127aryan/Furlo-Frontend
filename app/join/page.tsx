@@ -15,8 +15,7 @@ export default function JoinPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  
+
   const router = useRouter()
   const { setUser, setActivePet, setOnboardingData } = useAuthStore()
 
@@ -26,11 +25,10 @@ export default function JoinPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    setSuccessMessage(null)
 
     try {
       if (isSignup) {
-        // Save temp credentials to store first
+        // Save temp credentials to store
         setOnboardingData({ email, password })
 
         // Trigger sign-up email check in backend
@@ -38,19 +36,17 @@ export default function JoinPage() {
           method: 'POST',
           json: { email, password },
         })
-        
-        // Immediately move ahead to Step 1: selection
+
+        // Move to role selection
         router.push('/join/select')
       } else {
         const res = await apiFetch('/auth/login', {
           method: 'POST',
           json: { email, password },
         })
-        
+
         setUser(res.user)
         setActivePet(res.activePet)
-        
-        // Login page should go straight to home
         router.push('/')
       }
     } catch (err: any) {
@@ -58,6 +54,12 @@ export default function JoinPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const inputStyle = {
+    background: '#fef9f3',
+    borderColor: '#dbc1b3',
+    color: '#1d1b18',
   }
 
   return (
@@ -68,21 +70,22 @@ export default function JoinPage() {
       {/* Ambient blobs */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
         <div
-          className="absolute top-[8%] right-[4%] w-64 h-64 rounded-full"
-          style={{ background: '#ffb688', filter: 'blur(100px)', opacity: 0.3 }}
+          className="absolute top-[8%] right-[4%] w-72 h-72 rounded-full"
+          style={{ background: '#ffb688', filter: 'blur(110px)', opacity: 0.25 }}
         />
         <div
-          className="absolute bottom-[18%] left-[8%] w-80 h-80 rounded-full"
-          style={{ background: '#adcebe', filter: 'blur(120px)', opacity: 0.3 }}
+          className="absolute bottom-[15%] left-[6%] w-80 h-80 rounded-full"
+          style={{ background: '#adcebe', filter: 'blur(130px)', opacity: 0.22 }}
         />
       </div>
 
       {/* Main */}
       <main className="flex-grow flex items-center justify-center p-4 md:p-6">
         <div
-          className="w-full max-w-[420px] rounded-[24px] border border-[#dbc1b3] overflow-hidden relative"
+          className="w-full max-w-[420px] rounded-[24px] border overflow-hidden relative"
           style={{
             background: '#fef9f3',
+            borderColor: '#dbc1b3',
             boxShadow: '0 8px 32px rgba(28,35,41,0.08)',
           }}
         >
@@ -91,14 +94,14 @@ export default function JoinPage() {
             <div className="flex flex-col items-center gap-4">
               <Link href="/" className="flex items-center gap-1.5">
                 <span
-                  className="material-symbols-outlined text-[#E8843A]"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
+                  className="material-symbols-outlined"
+                  style={{ color: '#E8843A', fontVariationSettings: "'FILL' 1", fontSize: '26px' }}
                 >
                   pets
                 </span>
                 <span
-                  className="text-[22px] font-bold text-[#974900]"
-                  style={{ fontFamily: 'Outfit, sans-serif' }}
+                  className="text-[22px] font-bold"
+                  style={{ fontFamily: 'Outfit, sans-serif', color: '#974900' }}
                 >
                   furlo
                 </span>
@@ -106,13 +109,13 @@ export default function JoinPage() {
 
               {/* Tab switcher */}
               <div
-                className="flex w-full rounded-full p-1 border border-[#dbc1b3]/30"
-                style={{ background: '#f8f3ed' }}
+                className="flex w-full rounded-full p-1 border"
+                style={{ background: '#f8f3ed', borderColor: 'rgba(219,193,179,0.3)' }}
               >
                 <button
                   id="tab-signup"
-                  onClick={() => setMode('signup')}
-                  className="flex-1 py-2 rounded-full text-[14px] font-medium transition-all"
+                  onClick={() => { setMode('signup'); setError(null) }}
+                  className="flex-1 py-2 rounded-full text-[14px] font-medium transition-all duration-200"
                   style={{
                     background: isSignup ? '#974900' : 'transparent',
                     color: isSignup ? '#fff' : '#554338',
@@ -122,8 +125,8 @@ export default function JoinPage() {
                 </button>
                 <button
                   id="tab-signin"
-                  onClick={() => setMode('signin')}
-                  className="flex-1 py-2 rounded-full text-[14px] font-medium transition-all"
+                  onClick={() => { setMode('signin'); setError(null) }}
+                  className="flex-1 py-2 rounded-full text-[14px] font-medium transition-all duration-200"
                   style={{
                     background: !isSignup ? '#974900' : 'transparent',
                     color: !isSignup ? '#fff' : '#554338',
@@ -135,9 +138,9 @@ export default function JoinPage() {
             </div>
 
             {/* Headline */}
-            <div className="text-center transition-all duration-300">
+            <div className="text-center">
               <h1
-                className="text-[20px] font-semibold text-[#1d1b18]"
+                className="text-[20px] font-semibold text-[#1d1b18] transition-all duration-300"
                 style={{ fontFamily: 'Outfit, sans-serif' }}
               >
                 {isSignup ? 'Create your Furlo account' : 'Welcome back to Furlo 🐾'}
@@ -147,38 +150,19 @@ export default function JoinPage() {
               </p>
             </div>
 
-            {/* Success and Error Banners */}
+            {/* Error Banner */}
             {error && (
               <div
-                className="p-3.5 rounded-xl border flex items-start gap-2.5 text-[13px] leading-relaxed transition-all"
-                style={{
-                  background: '#fef2f2',
-                  borderColor: '#fca5a5',
-                  color: '#991b1b',
-                  fontFamily: 'Plus Jakarta Sans, sans-serif'
-                }}
+                className="p-3.5 rounded-xl border flex items-start gap-2.5 text-[13px] leading-relaxed"
+                style={{ background: '#fef2f2', borderColor: '#fca5a5', color: '#991b1b' }}
               >
-                <span className="material-symbols-outlined text-[18px] text-[#ef4444]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                <span
+                  className="material-symbols-outlined text-[18px] text-[#ef4444]"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
                   error
                 </span>
                 <span className="flex-1 font-medium">{error}</span>
-              </div>
-            )}
-
-            {successMessage && (
-              <div
-                className="p-3.5 rounded-xl border flex items-start gap-2.5 text-[13px] leading-relaxed transition-all"
-                style={{
-                  background: '#f0fdf4',
-                  borderColor: '#bbf7d0',
-                  color: '#166534',
-                  fontFamily: 'Plus Jakarta Sans, sans-serif'
-                }}
-              >
-                <span className="material-symbols-outlined text-[18px] text-[#22c55e]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  check_circle
-                </span>
-                <span className="flex-1 font-medium">{successMessage}</span>
               </div>
             )}
 
@@ -215,16 +199,10 @@ export default function JoinPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full rounded-xl py-3 px-4 border border-[#dbc1b3] text-[16px] text-[#1d1b18] outline-none transition-all placeholder:text-[#dbc1b3]"
-                  style={{ background: '#fef9f3' }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#974900'
-                    e.target.style.boxShadow = '0 0 0 1px #974900'
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#dbc1b3'
-                    e.target.style.boxShadow = 'none'
-                  }}
+                  className="w-full rounded-xl py-3 px-4 border text-[16px] outline-none transition-all placeholder:text-[#dbc1b3]"
+                  style={inputStyle}
+                  onFocus={(e) => { e.target.style.borderColor = '#974900'; e.target.style.boxShadow = '0 0 0 1px #974900' }}
+                  onBlur={(e) => { e.target.style.borderColor = '#dbc1b3'; e.target.style.boxShadow = 'none' }}
                 />
               </div>
 
@@ -239,16 +217,10 @@ export default function JoinPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full rounded-xl py-3 px-4 pr-12 border border-[#dbc1b3] text-[16px] text-[#1d1b18] outline-none transition-all placeholder:text-[#dbc1b3]"
-                    style={{ background: '#fef9f3' }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = '#974900'
-                      e.target.style.boxShadow = '0 0 0 1px #974900'
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#dbc1b3'
-                      e.target.style.boxShadow = 'none'
-                    }}
+                    className="w-full rounded-xl py-3 px-4 pr-12 border text-[16px] outline-none transition-all placeholder:text-[#dbc1b3]"
+                    style={inputStyle}
+                    onFocus={(e) => { e.target.style.borderColor = '#974900'; e.target.style.boxShadow = '0 0 0 1px #974900' }}
+                    onBlur={(e) => { e.target.style.borderColor = '#dbc1b3'; e.target.style.boxShadow = 'none' }}
                   />
                   <button
                     type="button"
@@ -260,7 +232,7 @@ export default function JoinPage() {
                     </span>
                   </button>
                 </div>
-                {/* Forgot password — shown in signin mode */}
+                {/* Forgot password */}
                 {!isSignup && (
                   <div className="flex justify-end mt-1">
                     <Link
@@ -278,16 +250,18 @@ export default function JoinPage() {
                 id="btn-submit"
                 type="submit"
                 disabled={loading}
-                className="mt-2 w-full py-3 rounded-full text-[14px] font-medium text-white transition-all hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group disabled:opacity-60 disabled:cursor-not-allowed"
-                style={{ background: '#974900' }}
+                className="mt-2 w-full py-3 rounded-full text-[15px] font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{ background: '#974900', fontFamily: 'Outfit, sans-serif' }}
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                    <span className="material-symbols-outlined text-[18px]" style={{ animation: 'spin 1s linear infinite' }}>
+                      progress_activity
+                    </span>
                     {isSignup ? 'Creating account…' : 'Signing in…'}
                   </span>
                 ) : (
-                  <span>{isSignup ? 'Join the Pack' : 'Find Your Pack'}</span>
+                  <span>{isSignup ? 'Join the Pack →' : 'Find Your Pack →'}</span>
                 )}
               </button>
             </form>
@@ -297,7 +271,7 @@ export default function JoinPage() {
               {isSignup ? 'Already a Pack Member?' : 'Need to bark first?'}{' '}
               <button
                 id="btn-switch"
-                onClick={() => setMode(isSignup ? 'signin' : 'signup')}
+                onClick={() => { setMode(isSignup ? 'signin' : 'signup'); setError(null) }}
                 className="text-[#974900] font-semibold hover:underline ml-1"
               >
                 {isSignup ? 'Find Your Pack' : 'Join the Pack'}
@@ -308,7 +282,10 @@ export default function JoinPage() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full px-4 md:px-6 py-8 flex flex-col md:flex-row justify-between gap-4" style={{ background: '#476558', color: '#fff' }}>
+      <footer
+        className="w-full px-4 md:px-6 py-8 flex flex-col md:flex-row justify-between gap-4"
+        style={{ background: '#476558', color: '#fff' }}
+      >
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-1.5">
             <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>pets</span>
@@ -324,6 +301,13 @@ export default function JoinPage() {
           ))}
         </nav>
       </footer>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   )
 }

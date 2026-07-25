@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-
 import { useAuthStore } from '@/store/useAuthStore'
 
 type JoinType = 'parent' | 'lover' | null
@@ -46,6 +45,18 @@ export default function JoinSelectPage() {
       className="min-h-screen flex flex-col"
       style={{ background: '#fef9f3', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
     >
+      {/* Ambient background blobs */}
+      <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
+        <div
+          className="absolute top-[5%] right-[2%] w-80 h-80 rounded-full"
+          style={{ background: '#ffb688', filter: 'blur(120px)', opacity: 0.2 }}
+        />
+        <div
+          className="absolute bottom-[10%] left-[5%] w-96 h-96 rounded-full"
+          style={{ background: '#adcebe', filter: 'blur(140px)', opacity: 0.18 }}
+        />
+      </div>
+
       {/* Step header */}
       <header
         className="w-full flex items-center h-[52px] px-4 md:px-6 sticky top-0 z-50"
@@ -59,35 +70,40 @@ export default function JoinSelectPage() {
           >
             <span
               className="material-symbols-outlined"
-              style={{ fontVariationSettings: "'wght' 600", fontSize: '20px' }}
+              style={{ fontVariationSettings: "'wght' 600", fontSize: '22px' }}
             >
               chevron_left
             </span>
           </Link>
-          <span className="text-[12px] font-bold uppercase tracking-widest text-[#887366]">
-            Step 1 of 3
+          <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#887366' }}>
+            Step 1 of 4
           </span>
           <div className="w-8" />
         </div>
       </header>
 
       {/* Progress bar */}
-      <div className="h-0.5 bg-[#ece7e2]">
-        <div className="h-full bg-[#E8843A] transition-all duration-500" style={{ width: '33.3%' }} />
+      <div className="h-[3px]" style={{ background: '#ece7e2' }}>
+        <div
+          className="h-full transition-all duration-700 ease-out rounded-full"
+          style={{ width: '25%', background: 'linear-gradient(90deg, #E8843A, #ffb688)' }}
+        />
       </div>
 
       {/* Main */}
-      <main className="flex-grow flex items-start justify-center px-4 pt-8 pb-16">
+      <main className="flex-grow flex items-start justify-center px-4 pt-10 pb-16">
         <div className="max-w-[480px] w-full flex flex-col gap-8">
           {/* Title */}
           <div className="flex flex-col gap-2">
             <h1
-              className="text-[28px] font-bold text-[#1d1b18]"
-              style={{ fontFamily: 'Outfit, sans-serif' }}
+              className="text-[30px] font-bold leading-tight"
+              style={{ fontFamily: 'Outfit, sans-serif', color: '#1d1b18' }}
             >
               How would you like to join Furlo?
             </h1>
-            <p className="text-[16px] text-[#554338]">You can always change this later.</p>
+            <p className="text-[15px]" style={{ color: '#554338' }}>
+              You can always change this later.
+            </p>
           </div>
 
           {/* Option cards */}
@@ -99,46 +115,71 @@ export default function JoinSelectPage() {
                   key={opt.id}
                   id={`card-${opt.id}`}
                   onClick={() => setSelected(opt.id)}
-                  className="relative text-left p-6 rounded-xl border flex items-start gap-4 group transition-all duration-200 active:scale-[0.98]"
+                  className="relative text-left rounded-2xl border flex items-start gap-4 group transition-all duration-200 active:scale-[0.98]"
                   style={{
-                    background: isSelected ? '#ffdbc7' : '#fef9f3',
+                    background: isSelected ? '#fff8f3' : '#fef9f3',
                     borderColor: isSelected ? '#974900' : '#dbc1b3',
                     borderWidth: isSelected ? '2px' : '1px',
+                    padding: '20px 24px',
+                    boxShadow: isSelected
+                      ? '0 4px 24px rgba(151,73,0,0.12)'
+                      : '0 1px 4px rgba(28,35,41,0.04)',
                     animationDelay: `${i * 80}ms`,
                   }}
                 >
                   {/* Icon */}
                   <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-colors"
-                    style={{ background: opt.iconBg }}
+                    className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200"
+                    style={{
+                      background: isSelected
+                        ? opt.id === 'parent' ? 'rgba(151,73,0,0.15)' : 'rgba(71,101,88,0.25)'
+                        : opt.iconBg,
+                    }}
                   >
                     <span
-                      className="material-symbols-outlined text-[28px]"
-                      style={{ color: opt.iconColor }}
+                      className="material-symbols-outlined"
+                      style={{
+                        color: opt.iconColor,
+                        fontSize: '26px',
+                        fontVariationSettings: isSelected ? "'FILL' 1" : "'FILL' 0",
+                      }}
                     >
                       {opt.icon}
                     </span>
                   </div>
 
                   {/* Text */}
-                  <div className="flex flex-col gap-1 pr-6">
+                  <div className="flex flex-col gap-1.5 pr-8 flex-1">
                     <h3
-                      className="text-[18px] font-semibold text-[#1d1b18]"
-                      style={{ fontFamily: 'Outfit, sans-serif' }}
+                      className="font-semibold"
+                      style={{
+                        fontFamily: 'Outfit, sans-serif',
+                        fontSize: '18px',
+                        color: isSelected ? '#974900' : '#1d1b18',
+                      }}
                     >
                       {opt.title}
                     </h3>
-                    <p className="text-[14px] text-[#554338] leading-relaxed">{opt.description}</p>
+                    <p className="text-[13px] leading-relaxed" style={{ color: '#554338' }}>
+                      {opt.description}
+                    </p>
                   </div>
 
                   {/* Check icon */}
                   <div
                     className="absolute top-4 right-4 transition-all duration-200"
-                    style={{ opacity: isSelected ? 1 : 0, transform: isSelected ? 'scale(1)' : 'scale(0.7)' }}
+                    style={{
+                      opacity: isSelected ? 1 : 0,
+                      transform: isSelected ? 'scale(1)' : 'scale(0.6)',
+                    }}
                   >
                     <span
-                      className="material-symbols-outlined text-[22px]"
-                      style={{ color: '#974900', fontVariationSettings: "'FILL' 1, 'wght' 600" }}
+                      className="material-symbols-outlined"
+                      style={{
+                        color: '#974900',
+                        fontSize: '22px',
+                        fontVariationSettings: "'FILL' 1, 'wght' 600",
+                      }}
                     >
                       check_circle
                     </span>
@@ -153,18 +194,30 @@ export default function JoinSelectPage() {
             <button
               id="btn-continue"
               onClick={handleContinue}
-              disabled={!selected}
-              className="w-full h-14 rounded-full flex items-center justify-center gap-2 text-[18px] font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              disabled={!selected || animating}
+              className="w-full h-14 rounded-full flex items-center justify-center gap-2 transition-all duration-200"
               style={{
-                background: selected ? '#E8843A' : '#f2ede7',
+                background: selected ? '#974900' : '#f2ede7',
                 color: selected ? '#fff' : '#887366',
-                cursor: selected ? 'pointer' : 'not-allowed',
                 fontFamily: 'Outfit, sans-serif',
+                fontSize: '16px',
+                fontWeight: 600,
+                cursor: selected ? 'pointer' : 'not-allowed',
+                transform: 'scale(1)',
+                boxShadow: selected ? '0 4px 20px rgba(151,73,0,0.25)' : 'none',
+              }}
+              onMouseEnter={(e) => {
+                if (selected) (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)'
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'
               }}
             >
               {animating ? (
                 <>
-                  <span className="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
+                  <span className="material-symbols-outlined text-[18px]" style={{ animation: 'spin 1s linear infinite' }}>
+                    progress_activity
+                  </span>
                   Setting up your profile…
                 </>
               ) : (
@@ -175,18 +228,32 @@ export default function JoinSelectPage() {
               )}
             </button>
           </div>
+
+          {/* Already a member link */}
+          <p className="text-center text-[13px]" style={{ color: '#887366' }}>
+            Already in the pack?{' '}
+            <Link href="/join" className="font-semibold hover:underline" style={{ color: '#974900' }}>
+              Find Your Pack
+            </Link>
+          </p>
         </div>
       </main>
 
       {/* Footer */}
-      <footer
-        className="py-8 px-4 border-t border-[#dbc1b3]/30"
-        style={{ background: '#f8f3ed' }}
-      >
+      <footer className="py-6 px-4 border-t" style={{ borderColor: 'rgba(219,193,179,0.3)', background: '#f8f3ed' }}>
         <div className="max-w-[480px] mx-auto text-center">
-          <p className="text-[12px] text-[#887366]">© 2026 FURLO. Where Pets Belong.</p>
+          <p className="text-[11px]" style={{ color: '#887366' }}>
+            © 2026 FURLO. Where Pets Belong.
+          </p>
         </div>
       </footer>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   )
 }
