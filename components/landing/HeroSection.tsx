@@ -49,13 +49,13 @@ export function HeroSection() {
           </div>
 
           <p
-            className="text-[18px] leading-relaxed text-[#554338] mb-8 max-w-[420px]"
+            className="text-[18px] leading-relaxed text-[#554338] mb-8 md:mb-10 max-w-[420px]"
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
             India&apos;s first social network built for your dog, your cat, and every tail in between.
           </p>
 
-          <div className="flex flex-col gap-5 items-start">
+          <div className="flex flex-col gap-6 md:gap-5 items-start mt-4 md:mt-0">
             <Link
               href="/join"
               id="hero-cta"

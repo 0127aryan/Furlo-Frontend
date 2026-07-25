@@ -51,6 +51,7 @@ export function SplashScreen({ onComplete, minDuration = 1800 }: SplashScreenPro
 
   return (
     <div
+      suppressHydrationWarning
       aria-label="Loading Furlo"
       role="status"
       style={{
