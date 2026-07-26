@@ -75,6 +75,15 @@ export function Footer() {
               <ul className="space-y-3">
                 <li>
                   <Link
+                    href="/about"
+                    className="text-[14px] text-[#554338] hover:text-[#E8843A] transition-colors"
+                    style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+                  >
+                    About Us
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     href="/privacy"
                     className="text-[14px] text-[#554338] hover:text-[#E8843A] transition-colors"
                     style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
@@ -83,13 +92,13 @@ export function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <a
-                    href="#"
+                  <Link
+                    href="/terms"
                     className="text-[14px] text-[#554338] hover:text-[#E8843A] transition-colors"
                     style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                   >
                     Terms of Service
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -103,7 +112,7 @@ export function Footer() {
               <ul className="space-y-3">
                 <li>
                   <a
-                    href="https://instagram.com/furloapp"
+                    href="https://www.instagram.com/furlo.pets?igsh=MTZhNmU1dmlrczFzOQ=="
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[14px] text-[#554338] hover:text-[#E8843A] transition-colors"
