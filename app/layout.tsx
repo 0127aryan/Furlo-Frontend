@@ -52,8 +52,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={cn("font-sans", geist.variable)} suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-        {/* <meta name="google-site-verification" content="3sMlk6H-uzQuQLCJQ7jO7oF1XXwm-tmyQagKEH7jGis" /> 
-        <meta name="google-adsense-account" content="ca-pub-9411289097087946" /> */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                      if (mutation.type === 'attributes' && mutation.attributeName === 'bis_skin_checked') {
+                        mutation.target.removeAttribute('bis_skin_checked');
+                      }
+                    });
+                  });
+                  observer.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['bis_skin_checked'] });
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
       </head>
       <body className={`${dmSans.variable} ${literata.variable} ${outfit.variable} ${plusJakartaSans.variable} font-sans antialiased`} suppressHydrationWarning>
         {/* <Script

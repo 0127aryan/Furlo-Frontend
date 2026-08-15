@@ -49,7 +49,7 @@ export function CTASection() {
         </div>
 
         <Link
-          href="/join"
+          href="/join?mode=signin"
           id="cta-join-pack"
           className="inline-block bg-[#E8843A] text-white px-10 py-4 rounded-full text-[20px] font-semibold transition-all hover:scale-105 active:scale-95 hover:shadow-2xl hover:shadow-[#E8843A]/40"
           style={{ fontFamily: 'Outfit, sans-serif' }}

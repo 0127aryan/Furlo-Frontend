@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server'
 const PROTECTED_PREFIXES = ['/feed', '/onboarding', '/settings', '/notifications', '/admin', '/reports']
 
 // Auth routes that should redirect to feed if already logged in
-const AUTH_ROUTES = ['/login', '/signup']
+const AUTH_ROUTES = ['/join', '/login', '/signup']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -16,10 +16,10 @@ export function middleware(request: NextRequest) {
   const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname === route)
 
-  // 1. If accessing a protected route without a valid session token, redirect to login
+  // 1. If accessing a protected route without a valid session token, redirect to /join
   if (isProtected && !sessionToken) {
-    const loginUrl = new URL('/login', request.url)
-    // Optional: preserve the original path to redirect back after successful login
+    const loginUrl = new URL('/join', request.url)
+    loginUrl.searchParams.set('mode', 'signin')
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
   }

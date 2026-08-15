@@ -5,10 +5,11 @@ export interface PetTypeOption {
 }
 
 export const PET_TYPE_OPTIONS: PetTypeOption[] = [
-  { id: 'dogs', label: 'Dogs', icon: 'pets' },
-  { id: 'cats', label: 'Cats', icon: 'cat' },
-  { id: 'birds', label: 'Birds', icon: 'feather' },
-  { id: 'rabbits', label: 'Rabbits', icon: 'cruelty_free' },
+  { id: 'dogs', label: 'Dog', icon: 'pets' },
+  { id: 'cats', label: 'Cat', icon: 'cat' },
+  { id: 'rabbits', label: 'Rabbit', icon: 'cruelty_free' },
+  { id: 'birds', label: 'Bird', icon: 'feather' },
+  { id: 'hamsters', label: 'Hamster', icon: 'pest_control' },
   { id: 'other', label: 'Other', icon: 'category' },
 ]
 
@@ -81,6 +82,14 @@ export const BREEDS_BY_PET_TYPE: Record<string, string[]> = {
     'Angora',
     'Dutch Rabbit',
     'English Spot',
+    'Other',
+  ],
+  hamsters: [
+    'Syrian Hamster',
+    'Dwarf Campbell Russian',
+    'Dwarf Winter White',
+    'Roborovski Dwarf',
+    'Chinese Hamster',
     'Other',
   ],
   other: ['Other'],

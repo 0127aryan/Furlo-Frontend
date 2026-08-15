@@ -5,6 +5,7 @@ export interface User {
   email: string
   is_admin: boolean
   status: string
+  name?: string
 }
 
 export interface Pet {
@@ -21,10 +22,11 @@ export interface Pet {
 export interface OnboardingData {
   role: 'parent' | 'lover' | null
   email?: string
-  password?: string // Keep temp to auto-login or trigger final setup
+  password?: string
   petName?: string
   petUsername?: string
   petType?: string
+  species?: string
   customPetType?: string
   breed?: string
   customBreed?: string
@@ -46,17 +48,41 @@ interface AuthState {
   clearAuth: () => void
 }
 
+const getInitialOnboardingData = (): OnboardingData | null => {
+  if (typeof window === 'undefined') return null
+  try {
+    const saved = localStorage.getItem('furlo_onboarding_data')
+    return saved ? JSON.parse(saved) : null
+  } catch (e) {
+    return null
+  }
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   activePet: null,
-  onboardingData: null,
+  onboardingData: getInitialOnboardingData(),
   setUser: (user) => set({ user }),
   setActivePet: (pet) => set({ activePet: pet }),
   setOnboardingData: (data) =>
-    set((state) => ({
-      onboardingData: data
+    set((state) => {
+      const updated = data
         ? { ...(state.onboardingData || { role: null }), ...data }
-        : null,
-    })),
-  clearAuth: () => set({ user: null, activePet: null }),
+        : null
+
+      if (typeof window !== 'undefined') {
+        if (updated) {
+          localStorage.setItem('furlo_onboarding_data', JSON.stringify(updated))
+        } else {
+          localStorage.removeItem('furlo_onboarding_data')
+        }
+      }
+      return { onboardingData: updated }
+    }),
+  clearAuth: () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('furlo_onboarding_data')
+    }
+    set({ user: null, activePet: null, onboardingData: null })
+  },
 }))
