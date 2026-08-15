@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { apiFetch } from '@/lib/api'
@@ -9,7 +9,7 @@ import { getWebmailInfo } from '@/lib/email-helpers'
 
 type AuthMode = 'signup' | 'signin'
 
-export default function JoinPage() {
+function JoinContent() {
   const searchParams = useSearchParams()
   const modeParam = searchParams.get('mode')
   const [mode, setMode] = useState<AuthMode>(modeParam === 'signup' ? 'signup' : 'signin')
@@ -575,5 +575,19 @@ export default function JoinPage() {
         }
       `}</style>
     </div>
+  )
+}
+
+export default function JoinPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#fef9f3] text-[#887366] font-medium text-[14px]">
+          Loading Furlo...
+        </div>
+      }
+    >
+      <JoinContent />
+    </Suspense>
   )
 }

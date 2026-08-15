@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/api'
 import { useAuthStore } from '@/store/useAuthStore'
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const router = useRouter()
@@ -220,5 +220,19 @@ export default function AuthCallbackPage() {
         }
       `}</style>
     </div>
+  )
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#fef9f3] text-[#887366] font-medium text-[14px]">
+          Connecting authentication...
+        </div>
+      }
+    >
+      <AuthCallbackContent />
+    </Suspense>
   )
 }
