@@ -39,9 +39,17 @@ export async function apiFetch<T = any>(
     if (typeof window !== 'undefined') {
       useAuthStore.getState().clearAuth()
     }
+    // If logging out, return success gracefully without throwing 401 exception
+    if (path.includes('/auth/logout')) {
+      return { success: true } as unknown as T
+    }
   }
 
   if (!response.ok) {
+    if (path.includes('/auth/logout')) {
+      return { success: true } as unknown as T
+    }
+
     let errorMessage = 'An error occurred while fetching data.'
     try {
       const errorData = await response.json()
