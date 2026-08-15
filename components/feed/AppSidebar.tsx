@@ -1,17 +1,33 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
+import { apiFetch } from '@/lib/api'
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { activePet, user } = useAuthStore()
+  const router = useRouter()
+  const { activePet, user, clearAuth } = useAuthStore()
+  const [loggingOut, setLoggingOut] = useState(false)
 
   const petName = activePet?.name || user?.name || 'My Pet'
   const handle = activePet?.username ? `@${activePet.username}` : user?.email?.split('@')[0] || '@user'
   const rawAvatarUrl = activePet?.profile_image_url || ''
   const avatarUrl = rawAvatarUrl.includes('images.unsplash.com') ? '' : rawAvatarUrl
+
+  const handleLogout = async () => {
+    setLoggingOut(true)
+    try {
+      await apiFetch('/auth/logout', { method: 'POST' })
+    } catch (err) {
+      console.warn('[AppSidebar] Logout error:', err)
+    } finally {
+      clearAuth()
+      router.push('/join?mode=signin')
+    }
+  }
 
   const navItems = [
     { label: 'The Yard', href: '/feed', icon: 'home' },
@@ -72,7 +88,7 @@ export function AppSidebar() {
 
       {/* Bottom Pet Profile Switcher */}
       <div className="mt-auto pt-4 border-t border-[#EDE8E1]">
-        <div className="bg-white rounded-2xl p-3 border border-[#EDE8E1] shadow-sm flex items-center gap-3 cursor-pointer hover:bg-[#f6f9ff] transition-all active:scale-95">
+        <div className="bg-white rounded-2xl p-3 border border-[#EDE8E1] shadow-[#163328]/5 flex items-center gap-3 cursor-pointer hover:bg-[#f6f9ff] transition-all active:scale-95">
           {avatarUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
@@ -96,6 +112,16 @@ export function AppSidebar() {
         <p className="mt-2 text-center text-[#887366] text-[11px]">
           {activePet ? 'Switch pet profile' : 'Pet parent account'}
         </p>
+
+        {/* Log Out Button */}
+        <button
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className="mt-3 w-full py-2 px-3 rounded-xl border border-[#EDE8E1] bg-white hover:bg-[#fff5f5] text-[#ba1a1a] hover:border-[#fca5a5] text-[12px] font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm disabled:opacity-50"
+        >
+          <span className="material-symbols-outlined text-[16px]">logout</span>
+          <span>{loggingOut ? 'Logging Out...' : 'Log Out'}</span>
+        </button>
       </div>
     </aside>
   )
