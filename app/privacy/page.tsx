@@ -222,7 +222,7 @@ export default function PrivacyPolicyPage() {
             </p>
             <div className="p-5 rounded-2xl bg-white border border-[#ede8e1] inline-block">
               <p className="font-bold text-[#1d1b18]">Furlo Privacy &amp; Grievance Office</p>
-              <p className="text-[14px] text-[#554338] mt-1">Email: <a href="mailto:hello@furlo.in" className="text-[#974900] font-semibold hover:underline">hello@furlo.in</a></p>
+              <p className="text-[14px] text-[#554338] mt-1">Email: <a href="mailto:support@furlopets.in" className="text-[#974900] font-semibold hover:underline">support@furlopets.in</a></p>
               <p className="text-[12px] text-[#887366] mt-2">Response time: Within 30 days</p>
             </div>
           </section>

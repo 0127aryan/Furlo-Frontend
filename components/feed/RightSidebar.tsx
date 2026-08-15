@@ -124,12 +124,17 @@ export function RightSidebar() {
         )}
       </section>
 
-      {/* Footer Links */}
-      <footer className="mt-auto text-[11px] text-[#887366] flex flex-wrap gap-3">
-        <Link href="/about" className="hover:underline">About</Link>
-        <Link href="/privacy" className="hover:underline">Privacy</Link>
-        <Link href="/terms" className="hover:underline">Terms</Link>
-        <span>© 2026 Furlo Inc.</span>
+      {/* Veterinary / Community Advice Disclaimer & Footer Links */}
+      <footer className="mt-auto text-[11px] text-[#887366] flex flex-col gap-3.5 pt-4 border-t border-[#ede8e1]/60">
+        <p className="leading-relaxed text-[#756255] bg-[#fffaf5] p-2.5 rounded-xl border border-[#ffedd5]">
+          <strong className="text-[#9a3412]">Community Advice:</strong> Content on Furlo is shared by pet lovers &amp; owners and is not a substitute for professional veterinary guidance.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/about" className="hover:underline">About</Link>
+          <Link href="/privacy" className="hover:underline">Privacy</Link>
+          <Link href="/terms" className="hover:underline">Terms</Link>
+          <span>© 2026 Furlo Inc.</span>
+        </div>
       </footer>
     </aside>
   )

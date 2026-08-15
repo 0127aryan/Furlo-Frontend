@@ -123,9 +123,10 @@ export function Footer() {
                 </li>
                 <li>
                   <a
-                    href="mailto:hello@furlo.in"
+                    href="mailto:support@furlopets.in"
                     className="text-[14px] text-[#554338] hover:text-[#E8843A] transition-colors"
                     style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+                    target='_blank'
                   >
                     Contact Us
                   </a>

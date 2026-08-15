@@ -35,12 +35,12 @@ export default function AboutPage() {
               Our Story &amp; Vision
             </span>
             <h1
-              className="text-4xl md:text-6xl font-bold text-[#2D4A3E] leading-tight mb-6"
+              className="text-4xl md:text-6xl font-bold text-[#2D4A3E] leading-tight mb-10"
               style={{ fontFamily: 'Outfit, sans-serif' }}
             >
               Where pets are the identity, not their humans.
             </h1>
-            <p className="text-lg md:text-xl text-[#554338] leading-relaxed max-w-2xl mx-auto mb-10">
+            <p className="text-lg md:text-xl text-[#554338] leading-relaxed max-w-2xl mx-auto mb-10 pb-5">
               Furlo is India&apos;s first community-first social network built specifically for your dog, your cat, and every tail in between.
             </p>
             <div className="flex justify-center">
@@ -181,7 +181,7 @@ export default function AboutPage() {
             >
               Ready to give your pet a Paw Print?
             </h2>
-            <p className="text-[#554338] mb-8 text-[16px]">
+            <p className="text-[#554338] mb-8 py-4 text-[16px]">
               Join thousands of pet parents building memories together on Furlo.
             </p>
             <Link

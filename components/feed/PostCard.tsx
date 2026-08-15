@@ -65,6 +65,25 @@ export function PostCard({ post, onReport }: PostCardProps) {
   const [likeCount, setLikeCount] = useState(post.like_count || 0)
   const [showMenu, setShowMenu] = useState(false)
 
+  // Media carousel state
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0)
+  const [mediaAspectRatio, setMediaAspectRatio] = useState<number | null>(null)
+
+  const handleMediaLoad = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget
+    if (naturalWidth && naturalHeight) {
+      const ratio = naturalWidth / naturalHeight
+      if (post.media && post.media.length === 1) {
+        // Single image: use exact natural aspect ratio for edge-to-edge fit
+        setMediaAspectRatio(ratio)
+      } else {
+        // Multi-image carousel: clamp aspect ratio between 0.75 and 1.91
+        const clampedRatio = Math.max(0.75, Math.min(1.91, ratio))
+        setMediaAspectRatio((prev) => (prev ? Math.min(prev, clampedRatio) : clampedRatio))
+      }
+    }
+  }
+
   // Comments state
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<CommentItem[]>([])
@@ -151,7 +170,8 @@ export function PostCard({ post, onReport }: PostCardProps) {
 
   const authorName = post.pets?.name || 'Pet'
   const authorHandle = post.pets?.username ? `@${post.pets.username}` : ''
-  const authorAvatar = post.pets?.profile_image_url || ''
+  const rawAvatar = post.pets?.profile_image_url || ''
+  const authorAvatar = rawAvatar.includes('images.unsplash.com') ? '' : rawAvatar
   const communityName = post.communities?.name
 
   const formatTime = (iso: string) => {
@@ -235,23 +255,84 @@ export function PostCard({ post, onReport }: PostCardProps) {
         </div>
       </div>
 
-      {/* Medical / Advice Disclaimer Banner for Question or Advice post types */}
-      {(post.post_type === 'question' || post.post_type === 'advice') && (
-        <div className="mx-4 mb-3 px-3.5 py-2.5 rounded-xl bg-[#fff7ed] border border-[#ffedd5] flex items-center gap-2 text-[12px] text-[#9a3412]">
-          <span className="material-symbols-outlined text-[18px] text-[#E8843A]">medical_services</span>
-          <span><strong>Community Advice:</strong> Not a substitute for professional veterinary guidance.</span>
-        </div>
-      )}
-
-      {/* Media Carousel */}
+      {/* Media Carousel (Instagram-style Adaptive Sizing) */}
       {post.media && post.media.length > 0 && (
-        <div className="aspect-[4/3] bg-[#f8f3ed] relative overflow-hidden">
+        <div
+          className={`w-full relative overflow-hidden group flex items-center justify-center transition-all duration-300 ${
+            post.media.length > 1 ? 'bg-[#0d1110]' : 'bg-transparent'
+          }`}
+          style={{
+            aspectRatio: mediaAspectRatio ? `${mediaAspectRatio}` : undefined,
+            maxHeight: '620px',
+          }}
+        >
+          {/* Active Image */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={post.media[0].media_url}
-            alt="Post Attachment"
-            className="w-full h-full object-cover"
+            src={post.media[Math.min(currentMediaIndex, post.media.length - 1)]?.media_url}
+            alt={`Post Attachment ${currentMediaIndex + 1}`}
+            onLoad={handleMediaLoad}
+            className={`w-full transition-all duration-300 select-none ${
+              post.media.length === 1 ? 'h-auto object-cover max-h-[620px]' : 'h-full object-contain'
+            }`}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+            }}
           />
+
+          {/* Multiple Photos Indicator Badge */}
+          {post.media.length > 1 && (
+            <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-[12px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-md">
+              <span className="material-symbols-outlined text-[14px]">photo_library</span>
+              <span>
+                {currentMediaIndex + 1} / {post.media.length}
+              </span>
+            </div>
+          )}
+
+          {/* Left / Right Carousel Controls */}
+          {post.media.length > 1 && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setCurrentMediaIndex((prev) => (prev - 1 + post.media!.length) % post.media!.length)
+                }}
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center transition-all opacity-90 group-hover:opacity-100 shadow-lg"
+              >
+                <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setCurrentMediaIndex((prev) => (prev + 1) % post.media!.length)
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center transition-all opacity-90 group-hover:opacity-100 shadow-lg"
+              >
+                <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+              </button>
+            </>
+          )}
+
+          {/* Bottom Dot Indicators */}
+          {post.media.length > 1 && (
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full">
+              {post.media.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCurrentMediaIndex(idx)
+                  }}
+                  className={`transition-all rounded-full ${
+                    idx === currentMediaIndex
+                      ? 'w-2.5 h-2.5 bg-white scale-110'
+                      : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

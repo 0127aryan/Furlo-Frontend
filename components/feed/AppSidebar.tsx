@@ -10,7 +10,8 @@ export function AppSidebar() {
 
   const petName = activePet?.name || user?.name || 'My Pet'
   const handle = activePet?.username ? `@${activePet.username}` : user?.email?.split('@')[0] || '@user'
-  const avatarUrl = activePet?.profile_image_url || ''
+  const rawAvatarUrl = activePet?.profile_image_url || ''
+  const avatarUrl = rawAvatarUrl.includes('images.unsplash.com') ? '' : rawAvatarUrl
 
   const navItems = [
     { label: 'The Yard', href: '/feed', icon: 'home' },
@@ -80,8 +81,10 @@ export function AppSidebar() {
               className="w-10 h-10 rounded-full object-cover border-2 border-[#c9ead9]"
             />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-[#f8f3ed] flex items-center justify-center border-2 border-[#c9ead9]">
-              <span className="material-symbols-outlined text-[#E8843A] text-[18px]">pets</span>
+            <div className="w-10 h-10 rounded-full bg-[#f8f3ed] flex items-center justify-center border-2 border-[#c9ead9] shrink-0">
+              <span className="material-symbols-outlined text-[#E8843A] text-[18px]">
+                {activePet ? 'pets' : 'person'}
+              </span>
             </div>
           )}
           <div className="flex-1 min-w-0">
@@ -90,7 +93,9 @@ export function AppSidebar() {
           </div>
           <span className="material-symbols-outlined text-[#887366] text-[18px]">unfold_more</span>
         </div>
-        <p className="mt-2 text-center text-[#887366] text-[11px]">Switch pet profile</p>
+        <p className="mt-2 text-center text-[#887366] text-[11px]">
+          {activePet ? 'Switch pet profile' : 'Pet parent account'}
+        </p>
       </div>
     </aside>
   )
