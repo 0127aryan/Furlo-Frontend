@@ -183,7 +183,7 @@ export default function TermsOfServicePage() {
               These Terms are governed by and construed in accordance with the laws of India. Any disputes arising under these Terms shall be subject to the exclusive jurisdiction of the courts located in Bengaluru, Karnataka, India.
             </p>
             <p className="text-[14px] text-[#554338]">
-              Questions regarding these Terms? Email us at <a href="mailto:hello@furlo.in" className="text-[#974900] font-semibold hover:underline">hello@furlo.in</a>.
+              Questions regarding these Terms? Email us at <a href="mailto:support@furlopets.in" className="text-[#974900] font-semibold hover:underline">support@furlopets.in</a>.
             </p>
           </section>
         </div>

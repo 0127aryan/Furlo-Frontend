@@ -116,14 +116,22 @@ export default function AdminBreedsPage() {
           <span className="text-[14px] font-semibold text-[#476558]">Admin Catalog Dashboard</span>
         </div>
 
-        <button
-          onClick={fetchApprovals}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[13px] font-medium transition-all hover:bg-white"
-          style={{ borderColor: '#ede8e1', color: '#554338' }}
-        >
-          <span className="material-symbols-outlined text-[16px]">refresh</span>
-          Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/species"
+            className="px-3.5 py-1.5 rounded-lg bg-[#E8843A] text-white text-[13px] font-bold hover:bg-[#974900] transition-colors"
+          >
+            🐾 Species &amp; Verbs Config
+          </Link>
+
+          <button
+            onClick={fetchApprovals}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[13px] font-medium transition-all hover:bg-white"
+            style={{ borderColor: '#ede8e1', color: '#554338' }}
+          >
+            <span className="material-symbols-outlined text-[16px]">refresh</span>
+          </button>
+        </div>
       </header>
 
       {/* Content */}

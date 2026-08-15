@@ -57,7 +57,7 @@ export function HeroSection() {
 
           <div className="flex flex-col gap-6 md:gap-5 items-start mt-4 md:mt-0">
             <Link
-              href="/join"
+              href="/join?mode=signin"
               id="hero-cta"
               className="bg-[#E8843A] text-white px-8 py-3.5 rounded-full text-[18px] font-semibold transition-all hover:scale-105 active:scale-95 hover:shadow-xl hover:shadow-[#E8843A]/30"
               style={{ fontFamily: 'Outfit, sans-serif', animation: 'pulse-cta 2.5s infinite cubic-bezier(0.4, 0, 0.6, 1)' }}

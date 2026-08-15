@@ -48,25 +48,21 @@ export default function JoinPacksPage() {
         const formatted: Pack[] = data.map((c: any) => {
           // Assign dynamic icons based on name/slug
           let icon = 'diversity_1'
-          const slugLower = c.slug.toLowerCase()
+          const slugLower = (c.slug || '').toLowerCase()
           if (slugLower.includes('dog') || slugLower.includes('retriever') || slugLower.includes('beagle') || slugLower.includes('puppy') || slugLower.includes('husky')) {
             icon = 'pets'
           } else if (slugLower.includes('cat') || slugLower.includes('kitten') || slugLower.includes('feline')) {
             icon = 'cruelty_free'
           }
 
-          // Assign dynamic badge
-          let badge = 'Popular'
-          if (c.slug === 'indiranagar-dogs') badge = 'Active nearby'
-          else if (c.slug === 'blr-cats') badge = 'Trending 🔥'
-          else if (c.slug === 'mumbai-retrievers') badge = "You'd love this"
-          else if (c.slug === 'adoption-advocates') badge = 'Welfare'
+          const memberCount = c.member_count || 0
+          const badge = memberCount > 10 ? 'Popular' : 'Active nearby'
 
           return {
-            id: c.slug, // Use slug as the ID for compatibility
+            id: c.slug || c.id,
             name: c.name,
             icon,
-            members: formatMembers(c.member_count || 0),
+            members: formatMembers(memberCount),
             badge,
             category: slugLower.includes('cat') ? 'cat' : 'dog',
           }
@@ -93,52 +89,61 @@ export default function JoinPacksPage() {
     })
   }
 
+  const [error, setError] = useState<string | null>(null)
+
   const handleComplete = async () => {
     setCompleting(true)
+    setError(null)
 
     try {
-      // Submit the full onboarding data to backend
       const data = onboardingData
-      if (!data?.email || !data?.password) {
-        // If no credentials, just redirect
-        router.push('/')
-        return
-      }
+      const role = data?.role || 'parent'
+      const petName = data?.petName || (role === 'lover' ? 'Pet Lover' : 'My Companion')
+      const city = data?.city || 'Bangalore'
 
-      // Register + create pet in one flow
-      const res = await apiFetch('/auth/complete-onboarding', {
+      // Submit the full onboarding data to backend database
+      await apiFetch('/auth/complete-onboarding', {
         method: 'POST',
         json: {
-          petName: data.petName,
-          petUsername: data.petUsername,
-          breed: data.breed,
-          city: data.city,
-          gender: data.gender,
-          bio: data.bio,
-          personalityTags: data.personalityTags,
-          customPersonalityTags: data.customPersonalityTags,
-          avatarData: data.avatarData,
+          role,
+          petName,
+          petUsername: data?.petUsername,
+          petType: role === 'lover' ? 'lover' : (data?.petType || 'dogs'),
+          customPetType: data?.customPetType,
+          breed: role === 'lover' ? 'Pet Lover' : (data?.breed || 'Unknown'),
+          customBreed: data?.customBreed,
+          city,
+          gender: data?.gender || 'unknown',
+          bio: data?.bio || '',
+          personalityTags: data?.personalityTags || [],
+          customPersonalityTags: data?.customPersonalityTags || [],
+          avatarData: data?.avatarData,
           packs: Array.from(joinedPacks),
         },
       })
 
-      // Update auth store with user & active pet if returned
-      const meData = await apiFetch('/auth/me')
-      if (meData && meData.user) {
-        useAuthStore.getState().setUser(meData.user)
-        useAuthStore.getState().setActivePet(meData.activePet)
+      // Fetch fresh user & pet profile from backend
+      try {
+        const meData = await apiFetch('/auth/me')
+        if (meData && meData.user) {
+          useAuthStore.getState().setUser(meData.user)
+          useAuthStore.getState().setActivePet(meData.activePet)
+        }
+      } catch (meErr) {
+        console.warn('[packs] Could not fetch fresh me context:', meErr)
       }
+
+      // Clear saved onboarding input state
+      useAuthStore.getState().setOnboardingData(null)
 
       // Show success overlay
       setShowSuccess(true)
-      await new Promise((r) => setTimeout(r, 2200))
-      router.push('/')
+      await new Promise((r) => setTimeout(r, 2000))
+      router.push('/feed')
     } catch (err: any) {
       console.error('Onboarding complete error:', err)
-      // Fallback: show success and redirect anyway (email confirmation flow)
-      setShowSuccess(true)
-      await new Promise((r) => setTimeout(r, 2200))
-      router.push('/')
+      setError(err.message || 'Failed to save profile to database. Please try again.')
+      setCompleting(false)
     }
   }
 
@@ -243,6 +248,18 @@ export default function JoinPacksPage() {
                   Join local communities and meet pets near you.
                 </p>
               </div>
+
+              {error && (
+                <div
+                  className="mb-4 p-3.5 rounded-xl border flex items-start gap-2.5 text-[13px] leading-relaxed"
+                  style={{ background: '#fef2f2', borderColor: '#fca5a5', color: '#991b1b' }}
+                >
+                  <span className="material-symbols-outlined text-[18px] text-[#ef4444] shrink-0">
+                    error
+                  </span>
+                  <span className="flex-1 font-medium">{error}</span>
+                </div>
+              )}
 
               {/* Pack list */}
               <div className="flex flex-col gap-3">

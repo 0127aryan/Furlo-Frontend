@@ -39,7 +39,7 @@ export function Navbar() {
             Find Your Pack
           </a>
           <Link
-            href="/join"
+            href="/join?mode=signin"
             className="bg-[#E8843A] text-white px-6 py-2 rounded-full text-[14px] font-medium hover:scale-105 transition-all active:scale-95 hover:shadow-lg hover:shadow-[#E8843A]/30"
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >

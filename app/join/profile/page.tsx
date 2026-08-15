@@ -467,12 +467,15 @@ export default function JoinProfilePage() {
                   )}
                 </div>
 
-                {/* Pet Type (Animal Type) */}
+                {/* SPECIES Pill Selector */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#476558' }}>
-                    Pet Type (Animal Type)
+                  <label
+                    className="text-[12px] font-semibold uppercase tracking-[0.08em]"
+                    style={{ color: '#1C2329', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+                  >
+                    SPECIES
                   </label>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2.5">
                     {PET_TYPE_OPTIONS.map((typeOption) => {
                       const isSelected = petType === typeOption.id
                       return (
@@ -484,11 +487,12 @@ export default function JoinProfilePage() {
                             setBreed('')
                             setCustomBreed('')
                           }}
-                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[13px] font-semibold transition-all border shadow-sm"
+                          className="h-[44px] px-5 rounded-full text-[14px] font-medium transition-all duration-150 flex items-center justify-center gap-2"
                           style={{
-                            background: isSelected ? '#974900' : '#fff',
-                            color: isSelected ? '#fff' : '#554338',
-                            borderColor: isSelected ? '#974900' : '#ede8e1',
+                            background: isSelected ? '#E8843A' : '#FFFBF7',
+                            color: isSelected ? '#ffffff' : '#1C2329',
+                            border: isSelected ? 'none' : '1px solid #EDE8E1',
+                            fontFamily: 'Plus Jakarta Sans, sans-serif',
                           }}
                         >
                           <PetTypeIcon type={typeOption.id} />
@@ -504,7 +508,7 @@ export default function JoinProfilePage() {
                       <input
                         type="text"
                         required
-                        placeholder="Type animal type (e.g. Turtle, Hamster)..."
+                        placeholder="Type species name (e.g. Turtle, Guinea Pig)..."
                         value={customPetType}
                         onChange={(e) => setCustomPetType(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border text-[14px] outline-none transition-all"
