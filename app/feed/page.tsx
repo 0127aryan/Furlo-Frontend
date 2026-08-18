@@ -126,10 +126,11 @@ export default function FeedPage() {
               eventType: string
             }) => {
               const row = payload.new || payload.old
-              if (row?.pet_id === activePet?.id && row.post_id) {
+              if (row && row.pet_id === activePet?.id && row.post_id) {
+                const targetPostId = row.post_id
                 setPosts((prev) =>
                   prev.map((post) =>
-                    post.id === row.post_id ? { ...post, hasLiked: payload.eventType === 'INSERT' } : post
+                    post.id === targetPostId ? { ...post, hasLiked: payload.eventType === 'INSERT' } : post
                   )
                 )
               }
