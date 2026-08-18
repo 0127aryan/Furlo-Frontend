@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { createClient } from '@supabase/supabase-js'
 import { AppSidebar } from '@/components/feed/AppSidebar'
 import { RightSidebar } from '@/components/feed/RightSidebar'
 import { PostCard, Post } from '@/components/feed/PostCard'
@@ -26,17 +27,123 @@ export default function FeedPage() {
       })
       .catch(() => {})
 
-    // Fetch dynamic feed strictly from database
-    setLoading(true)
+    // Function to load feed dynamically with optional spinner control
     const petQuery = activePet?.id ? `?petId=${activePet.id}` : ''
-    apiFetch(`/posts/feed${petQuery}`)
-      .then((data) => {
-        if (data && Array.isArray(data.posts)) {
-          setPosts(data.posts)
+    const loadFeed = (showSpinner = false) => {
+      if (showSpinner) setLoading(true)
+      apiFetch(`/posts/feed${petQuery}`)
+        .then((data) => {
+          if (data && Array.isArray(data.posts)) {
+            setPosts(data.posts)
+          }
+        })
+        .catch((err) => console.error('[FeedPage] Error fetching feed:', err))
+        .finally(() => {
+          if (showSpinner) setLoading(false)
+        })
+    }
+
+    // Initial load with spinner
+    loadFeed(true)
+
+    let cancelled = false
+    let channel: ReturnType<ReturnType<typeof createClient>['channel']> | null = null
+    let supabase: ReturnType<typeof createClient> | null = null
+
+    apiFetch<{ supabaseUrl: string; supabaseAnonKey: string }>('/auth/supabase-config')
+      .then(async (config) => {
+        if (cancelled || !config?.supabaseUrl || !config?.supabaseAnonKey) return
+        supabase = createClient(config.supabaseUrl, config.supabaseAnonKey)
+        try {
+          const session = await apiFetch<{ access_token: string; refresh_token: string }>('/auth/realtime-session')
+          if (session?.access_token && session?.refresh_token) {
+            await supabase.auth.setSession({
+              access_token: session.access_token,
+              refresh_token: session.refresh_token,
+            })
+          }
+        } catch {
+          // Cookie session may be missing; broadcast still works anonymously.
         }
+        if (cancelled) return
+        channel = supabase
+          .channel('yard-feed', { config: { broadcast: { ack: false, self: true } } })
+          .on('broadcast', { event: 'post' }, ({ payload }: { payload: Post }) => {
+            if (!payload?.id) return
+            setPosts((prev) => (prev.some((item) => item.id === payload.id) ? prev : [payload, ...prev]))
+          })
+          .on(
+            'broadcast',
+            { event: 'counts' },
+            ({ payload }: { payload: { postId?: string; likeCount?: number; commentCount?: number; likedByPetId?: string | null; unlikedByPetId?: string | null } }) => {
+              if (!payload?.postId) return
+              setPosts((prev) =>
+                prev.map((post) => {
+                  if (post.id !== payload.postId) return post
+                  return {
+                    ...post,
+                    like_count: payload.likeCount !== undefined ? payload.likeCount : post.like_count,
+                    comment_count: payload.commentCount !== undefined ? payload.commentCount : post.comment_count,
+                    hasLiked:
+                      payload.likedByPetId === activePet?.id
+                        ? true
+                        : payload.unlikedByPetId === activePet?.id
+                          ? false
+                          : post.hasLiked,
+                  }
+                })
+              )
+            }
+          )
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'posts' },
+            (payload: { new: { id?: string; like_count?: number; comment_count?: number } }) => {
+              const row = payload.new
+              if (!row?.id) return
+              setPosts((prev) =>
+                prev.map((post) =>
+                  post.id === row.id
+                    ? {
+                        ...post,
+                        like_count: row.like_count !== undefined ? row.like_count : post.like_count,
+                        comment_count:
+                          row.comment_count !== undefined
+                            ? Math.max(post.comment_count || 0, row.comment_count)
+                            : post.comment_count,
+                      }
+                    : post
+                )
+              )
+            }
+          )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'likes' },
+            (payload: {
+              new?: { post_id?: string; pet_id?: string }
+              old?: { post_id?: string; pet_id?: string }
+              eventType: string
+            }) => {
+              const row = payload.new || payload.old
+              if (row && row.pet_id === activePet?.id && row.post_id) {
+                const targetPostId = row.post_id
+                setPosts((prev) =>
+                  prev.map((post) =>
+                    post.id === targetPostId ? { ...post, hasLiked: payload.eventType === 'INSERT' } : post
+                  )
+                )
+              }
+            }
+          )
+          .subscribe()
       })
-      .catch((err) => console.error('[FeedPage] Error fetching feed:', err))
-      .finally(() => setLoading(false))
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+      if (channel && supabase) supabase.removeChannel(channel)
+    }
   }, [activePet?.id])
 
   const handlePostCreated = (newPost: Post) => {
@@ -168,6 +275,9 @@ export default function FeedPage() {
                 key={post.id}
                 post={post}
                 onReport={(postId) => setReportingPostId(postId)}
+                onPatch={(postId, patch) => {
+                  setPosts((prev) => prev.map((item) => (item.id === postId ? { ...item, ...patch } : item)))
+                }}
               />
             ))}
           </div>

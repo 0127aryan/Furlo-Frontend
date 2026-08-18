@@ -51,18 +51,15 @@ interface CommentItem {
 interface PostCardProps {
   post: Post
   onReport: (postId: string) => void
+  onPatch?: (postId: string, patch: Partial<Pick<Post, 'like_count' | 'comment_count' | 'hasLiked'>>) => void
 }
 
-export function PostCard({ post, onReport }: PostCardProps) {
+export function PostCard({ post, onReport, onPatch }: PostCardProps) {
   const { activePet } = useAuthStore()
 
   const petSpecies = post.pets?.species || post.pets?.pet_type || 'dog'
-  const verbSingular = getCommentVerb(petSpecies)
-  const verbPlural = getCommentVerbPlural(petSpecies, post.comment_count || 0)
-
-  // Optimistic like state
-  const [hasLiked, setHasLiked] = useState(!!post.hasLiked)
-  const [likeCount, setLikeCount] = useState(post.like_count || 0)
+  const hasLiked = !!post.hasLiked
+  const likeCount = post.like_count || 0
   const [showMenu, setShowMenu] = useState(false)
 
   // Media carousel state
@@ -87,18 +84,27 @@ export function PostCard({ post, onReport }: PostCardProps) {
   // Comments state
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<CommentItem[]>([])
-  const [commentCount, setCommentCount] = useState(post.comment_count || 0)
   const [commentInput, setCommentInput] = useState('')
   const [loadingComments, setLoadingComments] = useState(false)
   const [submittingComment, setSubmittingComment] = useState(false)
+
+  const commentCount = Math.max(post.comment_count || 0, comments.length)
+  const verbSingular = getCommentVerb(petSpecies)
+  const verbPlural = getCommentVerbPlural(petSpecies, commentCount)
+
+  const patch = (next: Partial<Pick<Post, 'like_count' | 'comment_count' | 'hasLiked'>>) => {
+    onPatch?.(post.id, next)
+  }
 
   const handleToggleLike = async () => {
     if (!activePet?.id) return
     const prevLiked = hasLiked
     const prevCount = likeCount
 
-    setHasLiked(!prevLiked)
-    setLikeCount(prevLiked ? prevCount - 1 : prevCount + 1)
+    patch({
+      hasLiked: !prevLiked,
+      like_count: prevLiked ? Math.max(0, prevCount - 1) : prevCount + 1,
+    })
 
     try {
       const data = await apiFetch(`/posts/${post.id}/like`, {
@@ -106,13 +112,11 @@ export function PostCard({ post, onReport }: PostCardProps) {
         json: { petId: activePet.id },
       })
       if (data) {
-        setHasLiked(data.hasLiked)
-        setLikeCount(data.likeCount)
+        patch({ hasLiked: data.hasLiked, like_count: data.likeCount })
       }
     } catch (err) {
       console.error('[PostCard] Error toggling like:', err)
-      setHasLiked(prevLiked)
-      setLikeCount(prevCount)
+      patch({ hasLiked: prevLiked, like_count: prevCount })
     }
   }
 
@@ -126,6 +130,7 @@ export function PostCard({ post, onReport }: PostCardProps) {
         const data = await apiFetch(`/posts/${post.id}/comments`)
         if (data && data.comments) {
           setComments(data.comments)
+          patch({ comment_count: data.comments.length })
         }
       } catch (err) {
         console.error('[PostCard] Error fetching comments:', err)
@@ -153,7 +158,9 @@ export function PostCard({ post, onReport }: PostCardProps) {
 
       if (data && data.comment) {
         setComments((prev) => [...prev, data.comment])
-        setCommentCount((prev) => prev + 1)
+        patch({
+          comment_count: data.commentCount ?? Math.max(post.comment_count || 0, comments.length) + 1,
+        })
         setCommentInput('')
       }
     } catch (err) {
