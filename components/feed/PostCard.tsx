@@ -1,220 +1,276 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { apiFetch } from '@/lib/api'
-import { useAuthStore } from '@/store/useAuthStore'
-import { getCommentVerb, getCommentVerbPlural } from '@/lib/petVerbMap'
+import { useState } from "react";
+import Link from "next/link";
+import { apiFetch } from "@/lib/api";
+import { useAuthStore } from "@/store/useAuthStore";
+import { toast } from "@/lib/toast";
+import { getCommentVerb, getCommentVerbPlural } from "@/lib/petVerbMap";
 
 export interface Post {
-  id: string
-  caption: string
-  post_type: 'regular' | 'question' | 'advice' | 'meme'
-  location_city?: string
-  like_count: number
-  comment_count: number
-  hasLiked?: boolean
-  created_at: string
+  id: string;
+  caption: string;
+  post_type: "regular" | "question" | "advice" | "meme";
+  location_city?: string;
+  like_count: number;
+  comment_count: number;
+  hasLiked?: boolean;
+  created_at: string;
   pets?: {
-    id: string
-    name: string
-    username: string
-    breed: string
-    species?: string
-    pet_type?: string
-    city: string
-    profile_image_url: string
-  }
+    id: string;
+    name: string;
+    username: string;
+    breed: string;
+    species?: string;
+    pet_type?: string;
+    city: string;
+    profile_image_url: string;
+  };
   communities?: {
-    id: string
-    name: string
-    slug: string
-  }
+    id: string;
+    name: string;
+    slug: string;
+  };
   media?: {
-    id: string
-    media_url: string
-    display_order: number
-  }[]
+    id: string;
+    media_url: string;
+    display_order: number;
+  }[];
 }
 
 interface CommentItem {
-  id: string
-  content: string
-  created_at: string
+  id: string;
+  content: string;
+  created_at: string;
   pets?: {
-    id: string
-    name: string
-    username: string
-    profile_image_url: string
-  }
+    id: string;
+    name: string;
+    username: string;
+    profile_image_url: string;
+  };
 }
 
 interface PostCardProps {
-  post: Post
-  onReport: (postId: string) => void
-  onPatch?: (postId: string, patch: Partial<Pick<Post, 'like_count' | 'comment_count' | 'hasLiked'>>) => void
+  post: Post;
+  onReport: (postId: string) => void;
+  onDelete?: (postId: string) => void;
+  isOwner?: boolean;
+  onPatch?: (
+    postId: string,
+    patch: Partial<Pick<Post, "like_count" | "comment_count" | "hasLiked">>,
+  ) => void;
 }
 
-export function PostCard({ post, onReport, onPatch }: PostCardProps) {
-  const { activePet } = useAuthStore()
+export function PostCard({ post, onReport, onDelete, isOwner, onPatch }: PostCardProps) {
+  const { activePet } = useAuthStore();
 
-  const petSpecies = post.pets?.species || post.pets?.pet_type || 'dog'
-  const hasLiked = !!post.hasLiked
-  const likeCount = post.like_count || 0
-  const [showMenu, setShowMenu] = useState(false)
+  const petSpecies = post.pets?.species || post.pets?.pet_type || "dog";
+  const hasLiked = !!post.hasLiked;
+  const likeCount = post.like_count || 0;
+  const [showMenu, setShowMenu] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const canDelete = Boolean(
+    isOwner ||
+    (activePet?.id && post.pets?.id && activePet.id === post.pets.id)
+  );
+
+  const handleDeletePost = async () => {
+    if (!window.confirm("Are you sure you want to delete this bark?")) return;
+    setDeleting(true);
+    try {
+      await apiFetch(`/posts/${post.id}`, { method: "DELETE" });
+      if (onDelete) onDelete(post.id);
+    } catch (err) {
+      console.error("[PostCard] Delete error:", err);
+    } finally {
+      setDeleting(false);
+      setShowMenu(false);
+    }
+  };
 
   // Media carousel state
-  const [currentMediaIndex, setCurrentMediaIndex] = useState(0)
-  const [mediaAspectRatio, setMediaAspectRatio] = useState<number | null>(null)
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const [mediaAspectRatio, setMediaAspectRatio] = useState<number | null>(null);
 
-  const handleMediaLoad = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    const { naturalWidth, naturalHeight } = e.currentTarget
+  const handleMediaLoad = (
+    e: React.SyntheticEvent<HTMLImageElement, Event>,
+  ) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
     if (naturalWidth && naturalHeight) {
-      const ratio = naturalWidth / naturalHeight
+      const ratio = naturalWidth / naturalHeight;
       if (post.media && post.media.length === 1) {
         // Single image: use exact natural aspect ratio for edge-to-edge fit
-        setMediaAspectRatio(ratio)
+        setMediaAspectRatio(ratio);
       } else {
         // Multi-image carousel: clamp aspect ratio between 0.75 and 1.91
-        const clampedRatio = Math.max(0.75, Math.min(1.91, ratio))
-        setMediaAspectRatio((prev) => (prev ? Math.min(prev, clampedRatio) : clampedRatio))
+        const clampedRatio = Math.max(0.75, Math.min(1.91, ratio));
+        setMediaAspectRatio((prev) =>
+          prev ? Math.min(prev, clampedRatio) : clampedRatio,
+        );
       }
     }
-  }
+  };
 
   // Comments state
-  const [showComments, setShowComments] = useState(false)
-  const [comments, setComments] = useState<CommentItem[]>([])
-  const [commentInput, setCommentInput] = useState('')
-  const [loadingComments, setLoadingComments] = useState(false)
-  const [submittingComment, setSubmittingComment] = useState(false)
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<CommentItem[]>([]);
+  const [commentInput, setCommentInput] = useState("");
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
 
-  const commentCount = Math.max(post.comment_count || 0, comments.length)
-  const verbSingular = getCommentVerb(petSpecies)
-  const verbPlural = getCommentVerbPlural(petSpecies, commentCount)
+  const commentCount = Math.max(post.comment_count || 0, comments.length);
+  const verbSingular = getCommentVerb(petSpecies);
+  const verbPlural = getCommentVerbPlural(petSpecies, commentCount);
 
-  const patch = (next: Partial<Pick<Post, 'like_count' | 'comment_count' | 'hasLiked'>>) => {
-    onPatch?.(post.id, next)
-  }
+  const patch = (
+    next: Partial<Pick<Post, "like_count" | "comment_count" | "hasLiked">>,
+  ) => {
+    onPatch?.(post.id, next);
+  };
 
   const handleToggleLike = async () => {
-    if (!activePet?.id) return
-    const prevLiked = hasLiked
-    const prevCount = likeCount
+    if (!activePet?.id) {
+      toast.error("Please log in with a pet profile to give treats 🐾");
+      return;
+    }
+
+    const prevLiked = hasLiked;
+    const prevCount = likeCount;
 
     patch({
       hasLiked: !prevLiked,
       like_count: prevLiked ? Math.max(0, prevCount - 1) : prevCount + 1,
-    })
+    });
 
     try {
       const data = await apiFetch(`/posts/${post.id}/like`, {
-        method: 'POST',
+        method: "POST",
         json: { petId: activePet.id },
-      })
+      });
       if (data) {
-        patch({ hasLiked: data.hasLiked, like_count: data.likeCount })
+        patch({ hasLiked: data.hasLiked, like_count: data.likeCount });
       }
-    } catch (err) {
-      console.error('[PostCard] Error toggling like:', err)
-      patch({ hasLiked: prevLiked, like_count: prevCount })
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update treat. Please log in again 🐾");
+      patch({ hasLiked: prevLiked, like_count: prevCount });
     }
-  }
+  };
 
   const handleToggleComments = async () => {
-    const nextState = !showComments
-    setShowComments(nextState)
+    const nextState = !showComments;
+    setShowComments(nextState);
 
     if (nextState && comments.length === 0) {
-      setLoadingComments(true)
+      setLoadingComments(true);
       try {
-        const data = await apiFetch(`/posts/${post.id}/comments`)
+        const data = await apiFetch(`/posts/${post.id}/comments`);
         if (data && data.comments) {
-          setComments(data.comments)
-          patch({ comment_count: data.comments.length })
+          setComments(data.comments);
+          patch({ comment_count: data.comments.length });
         }
       } catch (err) {
-        console.error('[PostCard] Error fetching comments:', err)
+        console.error("[PostCard] Error fetching comments:", err);
       } finally {
-        setLoadingComments(false)
+        setLoadingComments(false);
       }
     }
-  }
+  };
 
   const handleAddComment = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!commentInput.trim() || !activePet?.id || submittingComment) return
+    e.preventDefault();
+    if (!commentInput.trim() || !activePet?.id || submittingComment) return;
 
-    setSubmittingComment(true)
-    const content = commentInput
+    setSubmittingComment(true);
+    const content = commentInput;
 
     try {
       const data = await apiFetch(`/posts/${post.id}/comments`, {
-        method: 'POST',
+        method: "POST",
         json: {
           petId: activePet.id,
           content,
         },
-      })
+      });
 
       if (data && data.comment) {
-        setComments((prev) => [...prev, data.comment])
+        setComments((prev) => [...prev, data.comment]);
         patch({
-          comment_count: data.commentCount ?? Math.max(post.comment_count || 0, comments.length) + 1,
-        })
-        setCommentInput('')
+          comment_count:
+            data.commentCount ??
+            Math.max(post.comment_count || 0, comments.length) + 1,
+        });
+        setCommentInput("");
       }
     } catch (err) {
-      console.error('[PostCard] Error posting comment:', err)
+      console.error("[PostCard] Error posting comment:", err);
     } finally {
-      setSubmittingComment(false)
+      setSubmittingComment(false);
     }
-  }
+  };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`)
-    setShowMenu(false)
-  }
+    navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
+    setShowMenu(false);
+  };
 
-  const authorName = post.pets?.name || 'Pet'
-  const authorHandle = post.pets?.username ? `@${post.pets.username}` : ''
-  const rawAvatar = post.pets?.profile_image_url || ''
-  const authorAvatar = rawAvatar.includes('images.unsplash.com') ? '' : rawAvatar
-  const communityName = post.communities?.name
+  const authorName = post.pets?.name || "Pet";
+  const authorHandle = post.pets?.username ? `@${post.pets.username}` : "";
+  const rawAvatar = post.pets?.profile_image_url || "";
+  const authorAvatar = rawAvatar.includes("images.unsplash.com")
+    ? ""
+    : rawAvatar;
+  const communityName = post.communities?.name;
 
   const formatTime = (iso: string) => {
     try {
-      const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
-      if (diff < 60) return 'Just now'
-      if (diff < 3600) return `${Math.floor(diff / 60)}m`
-      if (diff < 86400) return `${Math.floor(diff / 3600)}h`
-      return `${Math.floor(diff / 86400)}d`
+      const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+      if (diff < 60) return "Just now";
+      if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+      return `${Math.floor(diff / 86400)}d`;
     } catch {
-      return ''
+      return "";
     }
-  }
+  };
 
   return (
     <article
-      className="bg-white rounded-2xl border border-[#EDE8E1] shadow-sm overflow-hidden transition-all hover:-translate-y-0.5 duration-200"
-      style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+      className="bg-white rounded-2xl border border-[#EDE8E1] shadow-sm relative transition-all hover:-translate-y-0.5 duration-200"
+      style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
     >
       {/* Header */}
-      <div className="p-4 flex items-center justify-between relative">
-        <div className="flex items-center gap-3">
+      <div className="p-4 flex items-center justify-between relative z-10">
+        <Link
+          href={post.pets?.username ? `/p/${post.pets.username}` : post.pets?.id ? `/p/${post.pets.id}` : '#'}
+          className="flex items-center gap-3 group/author hover:opacity-90 transition-opacity"
+        >
           {authorAvatar ? (
             /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={authorAvatar} alt={authorName} className="w-10 h-10 rounded-full object-cover border border-[#ede8e1]" />
+            <img
+              src={authorAvatar}
+              alt={authorName}
+              className="w-10 h-10 rounded-full object-cover border border-[#ede8e1]"
+            />
           ) : (
             <div className="w-10 h-10 rounded-full bg-[#f8f3ed] flex items-center justify-center border border-[#ede8e1] shrink-0">
-              <span className="material-symbols-outlined text-[#E8843A] text-[18px]">pets</span>
+              <span className="material-symbols-outlined text-[#E8843A] text-[18px]">
+                pets
+              </span>
             </div>
           )}
           <div>
             <div className="flex items-center gap-1">
-              <h4 className="font-bold text-[16px] text-[#163328] leading-tight" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              <h4
+                className="font-bold text-[16px] text-[#163328] group-hover/author:text-[#E8843A] transition-colors leading-tight"
+                style={{ fontFamily: "Outfit, sans-serif" }}
+              >
                 {authorName}
               </h4>
-              <span className="material-symbols-outlined text-[#E8843A] text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+              <span
+                className="material-symbols-outlined text-[#E8843A] text-[15px]"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
                 verified
               </span>
               {communityName && (
@@ -227,7 +283,7 @@ export function PostCard({ post, onReport, onPatch }: PostCardProps) {
               {authorHandle} • {formatTime(post.created_at)}
             </p>
           </div>
-        </div>
+        </Link>
 
         {/* 3-dots Menu */}
         <div className="relative">
@@ -235,29 +291,55 @@ export function PostCard({ post, onReport, onPatch }: PostCardProps) {
             onClick={() => setShowMenu(!showMenu)}
             className="text-[#887366] hover:bg-[#f6f9ff] p-1.5 rounded-full transition-colors"
           >
-            <span className="material-symbols-outlined text-[20px]">more_horiz</span>
+            <span className="material-symbols-outlined text-[20px]">
+              more_horiz
+            </span>
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 top-8 w-44 bg-white rounded-xl shadow-xl border border-[#ede8e1] py-1.5 z-20 text-[13px]">
-              <button
-                onClick={handleCopyLink}
-                className="w-full text-left px-4 py-2 hover:bg-[#f6f9ff] flex items-center gap-2 text-[#554338]"
-              >
-                <span className="material-symbols-outlined text-[16px]">link</span>
-                Copy Link
-              </button>
-              <button
-                onClick={() => {
-                  setShowMenu(false)
-                  onReport(post.id)
-                }}
-                className="w-full text-left px-4 py-2 hover:bg-[#fef2f2] flex items-center gap-2 text-[#ba1a1a]"
-              >
-                <span className="material-symbols-outlined text-[16px]">flag</span>
-                Report Post
-              </button>
-            </div>
+            <>
+              <div
+                className="fixed inset-0 z-30"
+                onClick={() => setShowMenu(false)}
+              />
+              <div className="absolute right-0 top-9 w-48 bg-white rounded-2xl shadow-2xl border border-[#EDE8E1] p-1.5 z-40 text-[13px] space-y-0.5">
+                <button
+                  onClick={handleCopyLink}
+                  className="w-full text-left px-3.5 py-2 hover:bg-[#f8f3ed] rounded-xl flex items-center gap-2 text-[#424844] font-medium transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[18px]">
+                    link
+                  </span>
+                  <span>Copy Link</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    onReport(post.id);
+                  }}
+                  className="w-full text-left px-3.5 py-2 hover:bg-[#ffdad6]/40 rounded-xl flex items-center gap-2 text-[#974900] font-medium transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[18px]">
+                    flag
+                  </span>
+                  <span>Report Post</span>
+                </button>
+
+                {canDelete && (
+                  <button
+                    onClick={handleDeletePost}
+                    disabled={deleting}
+                    className="w-full text-left px-3.5 py-2 hover:bg-[#ffdad6] rounded-xl flex items-center gap-2 text-[#ba1a1a] font-bold border-t border-[#EDE8E1] mt-1 pt-1.5 transition-colors disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">
+                      delete
+                    </span>
+                    <span>{deleting ? "Deleting..." : "Delete Bark"}</span>
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -266,31 +348,38 @@ export function PostCard({ post, onReport, onPatch }: PostCardProps) {
       {post.media && post.media.length > 0 && (
         <div
           className={`w-full relative overflow-hidden group flex items-center justify-center transition-all duration-300 ${
-            post.media.length > 1 ? 'bg-[#0d1110]' : 'bg-transparent'
+            post.media.length > 1 ? "bg-[#0d1110]" : "bg-transparent"
           }`}
           style={{
             aspectRatio: mediaAspectRatio ? `${mediaAspectRatio}` : undefined,
-            maxHeight: '620px',
+            maxHeight: "620px",
           }}
         >
           {/* Active Image */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={post.media[Math.min(currentMediaIndex, post.media.length - 1)]?.media_url}
+            src={
+              post.media[Math.min(currentMediaIndex, post.media.length - 1)]
+                ?.media_url
+            }
             alt={`Post Attachment ${currentMediaIndex + 1}`}
             onLoad={handleMediaLoad}
             className={`w-full transition-all duration-300 select-none ${
-              post.media.length === 1 ? 'h-auto object-cover max-h-[620px]' : 'h-full object-contain'
+              post.media.length === 1
+                ? "h-auto object-cover max-h-[620px]"
+                : "h-full object-contain"
             }`}
             onError={(e) => {
-              e.currentTarget.style.display = 'none'
+              e.currentTarget.style.display = "none";
             }}
           />
 
           {/* Multiple Photos Indicator Badge */}
           {post.media.length > 1 && (
             <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-[12px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-md">
-              <span className="material-symbols-outlined text-[14px]">photo_library</span>
+              <span className="material-symbols-outlined text-[14px]">
+                photo_library
+              </span>
               <span>
                 {currentMediaIndex + 1} / {post.media.length}
               </span>
@@ -302,21 +391,30 @@ export function PostCard({ post, onReport, onPatch }: PostCardProps) {
             <>
               <button
                 onClick={(e) => {
-                  e.stopPropagation()
-                  setCurrentMediaIndex((prev) => (prev - 1 + post.media!.length) % post.media!.length)
+                  e.stopPropagation();
+                  setCurrentMediaIndex(
+                    (prev) =>
+                      (prev - 1 + post.media!.length) % post.media!.length,
+                  );
                 }}
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center transition-all opacity-90 group-hover:opacity-100 shadow-lg"
               >
-                <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                <span className="material-symbols-outlined text-[20px]">
+                  chevron_left
+                </span>
               </button>
               <button
                 onClick={(e) => {
-                  e.stopPropagation()
-                  setCurrentMediaIndex((prev) => (prev + 1) % post.media!.length)
+                  e.stopPropagation();
+                  setCurrentMediaIndex(
+                    (prev) => (prev + 1) % post.media!.length,
+                  );
                 }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center transition-all opacity-90 group-hover:opacity-100 shadow-lg"
               >
-                <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                <span className="material-symbols-outlined text-[20px]">
+                  chevron_right
+                </span>
               </button>
             </>
           )}
@@ -328,13 +426,13 @@ export function PostCard({ post, onReport, onPatch }: PostCardProps) {
                 <button
                   key={idx}
                   onClick={(e) => {
-                    e.stopPropagation()
-                    setCurrentMediaIndex(idx)
+                    e.stopPropagation();
+                    setCurrentMediaIndex(idx);
                   }}
                   className={`transition-all rounded-full ${
                     idx === currentMediaIndex
-                      ? 'w-2.5 h-2.5 bg-white scale-110'
-                      : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
+                      ? "w-2.5 h-2.5 bg-white scale-110"
+                      : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"
                   }`}
                 />
               ))}
@@ -348,12 +446,14 @@ export function PostCard({ post, onReport, onPatch }: PostCardProps) {
         <button
           onClick={handleToggleLike}
           className={`flex items-center gap-1.5 font-bold text-[13px] transition-all group ${
-            hasLiked ? 'text-[#E8843A]' : 'text-[#163328] hover:text-[#E8843A]'
+            hasLiked ? "text-[#E8843A]" : "text-[#163328] hover:text-[#E8843A]"
           }`}
         >
           <span
             className="material-symbols-outlined text-[20px] group-hover:scale-125 transition-transform"
-            style={{ fontVariationSettings: hasLiked ? "'FILL' 1" : "'FILL' 0" }}
+            style={{
+              fontVariationSettings: hasLiked ? "'FILL' 1" : "'FILL' 0",
+            }}
           >
             pets
           </span>
@@ -367,7 +467,9 @@ export function PostCard({ post, onReport, onPatch }: PostCardProps) {
           <span className="material-symbols-outlined text-[20px] group-hover:scale-125 transition-transform">
             chat_bubble
           </span>
-          <span>{commentCount} {verbPlural}</span>
+          <span>
+            {commentCount} {verbPlural}
+          </span>
         </button>
 
         <button
@@ -404,14 +506,16 @@ export function PostCard({ post, onReport, onPatch }: PostCardProps) {
               />
             ) : (
               <div className="w-8 h-8 rounded-full bg-[#f8f3ed] flex items-center justify-center border border-[#ede8e1] shrink-0">
-                <span className="material-symbols-outlined text-[#E8843A] text-[16px]">pets</span>
+                <span className="material-symbols-outlined text-[#E8843A] text-[16px]">
+                  pets
+                </span>
               </div>
             )}
             <input
               type="text"
               value={commentInput}
               onChange={(e) => setCommentInput(e.target.value)}
-              placeholder={`Add a ${verbSingular.toLowerCase()} as @${activePet?.username || activePet?.name || 'your pet'}...`}
+              placeholder={`Add a ${verbSingular.toLowerCase()} as @${activePet?.username || activePet?.name || "your pet"}...`}
               className="flex-1 bg-[#fef9f3] border border-[#dbc1b3] rounded-full px-4 py-1.5 text-[13px] text-[#163328] focus:outline-none focus:ring-1 focus:ring-[#E8843A]"
             />
             <button
@@ -425,9 +529,13 @@ export function PostCard({ post, onReport, onPatch }: PostCardProps) {
 
           {/* Comments List */}
           {loadingComments ? (
-            <p className="text-[12px] text-[#887366] text-center py-2">Loading {verbPlural.toLowerCase()}...</p>
+            <p className="text-[12px] text-[#887366] text-center py-2">
+              Loading {verbPlural.toLowerCase()}...
+            </p>
           ) : comments.length === 0 ? (
-            <p className="text-[12px] text-[#887366] text-center py-2">No {verbPlural.toLowerCase()} yet. Be the first to reply!</p>
+            <p className="text-[12px] text-[#887366] text-center py-2">
+              No {verbPlural.toLowerCase()} yet. Be the first to reply!
+            </p>
           ) : (
             <div className="space-y-2.5 max-h-60 overflow-y-auto">
               {comments.map((c) => (
@@ -436,16 +544,20 @@ export function PostCard({ post, onReport, onPatch }: PostCardProps) {
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={c.pets.profile_image_url}
-                      alt={c.pets?.name || 'Pet'}
+                      alt={c.pets?.name || "Pet"}
                       className="w-7 h-7 rounded-full object-cover border border-[#ede8e1] shrink-0 mt-0.5"
                     />
                   ) : (
                     <div className="w-7 h-7 rounded-full bg-[#f8f3ed] flex items-center justify-center border border-[#ede8e1] shrink-0 mt-0.5">
-                      <span className="material-symbols-outlined text-[#E8843A] text-[14px]">pets</span>
+                      <span className="material-symbols-outlined text-[#E8843A] text-[14px]">
+                        pets
+                      </span>
                     </div>
                   )}
                   <div className="bg-[#fef9f3] p-2.5 rounded-xl flex-1 border border-[#ede8e1]">
-                    <p className="font-bold text-[#163328] text-[12px]">{c.pets?.name || 'Pet'}</p>
+                    <p className="font-bold text-[#163328] text-[12px]">
+                      {c.pets?.name || "Pet"}
+                    </p>
                     <p className="text-[#554338] mt-0.5">{c.content}</p>
                   </div>
                 </div>
@@ -455,5 +567,5 @@ export function PostCard({ post, onReport, onPatch }: PostCardProps) {
         </div>
       )}
     </article>
-  )
+  );
 }

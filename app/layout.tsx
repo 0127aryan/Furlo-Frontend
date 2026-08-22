@@ -31,6 +31,10 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   display: 'swap',
 })
 
+const gaId = process.env.NEXT_PUBLIC_GA_ID
+const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID
+const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+
 export const metadata: Metadata = {
   title: `${process.env.NEXT_PUBLIC_APP_NAME} | ${process.env.NEXT_PUBLIC_APP_TAGLINE}`,
   description: process.env.NEXT_PUBLIC_APP_DESCRIPTION,
@@ -45,6 +49,11 @@ export const metadata: Metadata = {
     shortcut: '/logo.png',
     apple: '/logo.png',
   },
+  ...(googleVerification && {
+    verification: {
+      google: googleVerification,
+    },
+  }),
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -72,19 +81,34 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={`${dmSans.variable} ${literata.variable} ${outfit.variable} ${plusJakartaSans.variable} font-sans antialiased`} suppressHydrationWarning>
-        {/* <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-GKGESZZQVE"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
+        {/* Google Analytics (GA4) */}
+        {gaId && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${gaId}');
+              `}
+            </Script>
+          </>
+        )}
 
-            gtag('config', 'G-GKGESZZQVE');
-          `}
-        </Script> */}
+        {/* Google AdSense */}
+        {adsenseClientId && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
+
         <AppShell>{children}</AppShell>
       </body>
     </html>

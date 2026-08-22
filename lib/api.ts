@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/store/useAuthStore'
+import { toast } from '@/lib/toast'
 
 // All requests go to /api/backend/* which is proxied to the Express backend via next.config.ts
 // The backend URL never leaks to the browser - cookies work on same-origin automatically
@@ -23,8 +24,6 @@ export async function apiFetch<T = any>(
   const fetchOptions: RequestInit = {
     ...options,
     headers,
-    // credentials: 'include' is no longer needed for same-origin proxied requests
-    // but kept here for safety in case of direct cross-origin calls in the future
     credentials: 'include',
   }
 
@@ -35,11 +34,13 @@ export async function apiFetch<T = any>(
   const response = await fetch(url, fetchOptions)
 
   if (response.status === 401) {
-    // Session expired or invalid — clear the UI display state from Zustand
     if (typeof window !== 'undefined') {
       useAuthStore.getState().clearAuth()
+      // Skip toast for background session checks (like /auth/me) to avoid noisy prompts on landing
+      if (!path.includes('/auth/me') && !path.includes('/auth/logout')) {
+        toast.error('Session expired. Please log in again 🐾')
+      }
     }
-    // If logging out, return success gracefully without throwing 401 exception
     if (path.includes('/auth/logout')) {
       return { success: true } as unknown as T
     }
@@ -57,6 +58,13 @@ export async function apiFetch<T = any>(
     } catch {
       errorMessage = response.statusText || errorMessage
     }
+
+    if (errorMessage === 'Unauthorized' || response.status === 401) {
+      if (!path.includes('/auth/me')) {
+        toast.error('Please log in to perform this action 🐾')
+      }
+    }
+
     throw new Error(errorMessage)
   }
 

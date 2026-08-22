@@ -1,161 +1,241 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { createClient } from '@supabase/supabase-js'
-import { AppSidebar } from '@/components/feed/AppSidebar'
-import { RightSidebar } from '@/components/feed/RightSidebar'
-import { PostCard, Post } from '@/components/feed/PostCard'
-import { CreatePostModal } from '@/components/feed/CreatePostModal'
-import { ReportPostModal } from '@/components/feed/ReportPostModal'
-import { useAuthStore } from '@/store/useAuthStore'
-import { apiFetch } from '@/lib/api'
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { createClient } from "@supabase/supabase-js";
+import { AppSidebar } from "@/components/feed/AppSidebar";
+import { RightSidebar } from "@/components/feed/RightSidebar";
+import { PostCard, Post } from "@/components/feed/PostCard";
+import { CreatePostModal } from "@/components/feed/CreatePostModal";
+import { ReportPostModal } from "@/components/feed/ReportPostModal";
+import { useAuthStore } from "@/store/useAuthStore";
+import { apiFetch } from "@/lib/api";
+import { startFollowRealtime } from "@/lib/subscribeFollowEvents";
 
 export default function FeedPage() {
-  const { activePet, user } = useAuthStore()
-  const [posts, setPosts] = useState<Post[]>([])
-  const [loading, setLoading] = useState(true)
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [reportingPostId, setReportingPostId] = useState<string | null>(null)
-  const [communities, setCommunities] = useState<{ id: string; name: string }[]>([])
+  const { activePet, user } = useAuthStore();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [reportingPostId, setReportingPostId] = useState<string | null>(null);
+  const [communities, setCommunities] = useState<
+    { id: string; name: string }[]
+  >([]);
 
   useEffect(() => {
+    startFollowRealtime();
     // Fetch communities for composer dropdown
-    apiFetch('/auth/communities')
+    apiFetch("/auth/communities")
       .then((data) => {
-        if (data && Array.isArray(data)) setCommunities(data)
+        if (data && Array.isArray(data)) setCommunities(data);
       })
-      .catch(() => {})
+      .catch(() => {});
 
     // Function to load feed dynamically with optional spinner control
-    const petQuery = activePet?.id ? `?petId=${activePet.id}` : ''
+    const petQuery = activePet?.id ? `?petId=${activePet.id}` : "";
     const loadFeed = (showSpinner = false) => {
-      if (showSpinner) setLoading(true)
+      if (showSpinner) setLoading(true);
       apiFetch(`/posts/feed${petQuery}`)
         .then((data) => {
           if (data && Array.isArray(data.posts)) {
-            setPosts(data.posts)
+            setPosts(data.posts);
           }
         })
-        .catch((err) => console.error('[FeedPage] Error fetching feed:', err))
+        .catch((err) => console.error("[FeedPage] Error fetching feed:", err))
         .finally(() => {
-          if (showSpinner) setLoading(false)
-        })
-    }
+          if (showSpinner) setLoading(false);
+        });
+    };
 
     // Initial load with spinner
-    loadFeed(true)
+    loadFeed(true);
 
-    let cancelled = false
-    let channel: ReturnType<ReturnType<typeof createClient>['channel']> | null = null
-    let supabase: ReturnType<typeof createClient> | null = null
+    let cancelled = false;
+    let channel: ReturnType<ReturnType<typeof createClient>["channel"]> | null =
+      null;
+    let supabase: ReturnType<typeof createClient> | null = null;
 
-    apiFetch<{ supabaseUrl: string; supabaseAnonKey: string }>('/auth/supabase-config')
+    apiFetch<{ supabaseUrl: string; supabaseAnonKey: string }>(
+      "/auth/supabase-config",
+    )
       .then(async (config) => {
-        if (cancelled || !config?.supabaseUrl || !config?.supabaseAnonKey) return
-        supabase = createClient(config.supabaseUrl, config.supabaseAnonKey)
+        if (cancelled || !config?.supabaseUrl || !config?.supabaseAnonKey)
+          return;
+        supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
         try {
-          const session = await apiFetch<{ access_token: string; refresh_token: string }>('/auth/realtime-session')
+          const session = await apiFetch<{
+            access_token: string;
+            refresh_token: string;
+          }>("/auth/realtime-session");
           if (session?.access_token && session?.refresh_token) {
             await supabase.auth.setSession({
               access_token: session.access_token,
               refresh_token: session.refresh_token,
-            })
+            });
           }
         } catch {
           // Cookie session may be missing; broadcast still works anonymously.
         }
-        if (cancelled) return
+        if (cancelled) return;
         channel = supabase
-          .channel('yard-feed', { config: { broadcast: { ack: false, self: true } } })
-          .on('broadcast', { event: 'post' }, ({ payload }: { payload: Post }) => {
-            if (!payload?.id) return
-            setPosts((prev) => (prev.some((item) => item.id === payload.id) ? prev : [payload, ...prev]))
+          .channel("yard-feed", {
+            config: { broadcast: { ack: false, self: true } },
           })
           .on(
-            'broadcast',
-            { event: 'counts' },
-            ({ payload }: { payload: { postId?: string; likeCount?: number; commentCount?: number; likedByPetId?: string | null; unlikedByPetId?: string | null } }) => {
-              if (!payload?.postId) return
+            "broadcast",
+            { event: "post" },
+            ({ payload }: { payload: Post }) => {
+              if (!payload?.id) return;
+              setPosts((prev) =>
+                prev.some((item) => item.id === payload.id)
+                  ? prev
+                  : [payload, ...prev],
+              );
+            },
+          )
+          .on(
+            "broadcast",
+            { event: "counts" },
+            ({
+              payload,
+            }: {
+              payload: {
+                postId?: string;
+                likeCount?: number;
+                commentCount?: number;
+                likedByPetId?: string | null;
+                unlikedByPetId?: string | null;
+              };
+            }) => {
+              if (!payload?.postId) return;
               setPosts((prev) =>
                 prev.map((post) => {
-                  if (post.id !== payload.postId) return post
+                  if (post.id !== payload.postId) return post;
                   return {
                     ...post,
-                    like_count: payload.likeCount !== undefined ? payload.likeCount : post.like_count,
-                    comment_count: payload.commentCount !== undefined ? payload.commentCount : post.comment_count,
+                    like_count:
+                      payload.likeCount !== undefined
+                        ? payload.likeCount
+                        : post.like_count,
+                    comment_count:
+                      payload.commentCount !== undefined
+                        ? payload.commentCount
+                        : post.comment_count,
                     hasLiked:
                       payload.likedByPetId === activePet?.id
                         ? true
                         : payload.unlikedByPetId === activePet?.id
                           ? false
                           : post.hasLiked,
-                  }
-                })
-              )
-            }
+                  };
+                }),
+              );
+            },
           )
           .on(
-            'postgres_changes',
-            { event: 'UPDATE', schema: 'public', table: 'posts' },
-            (payload: { new: { id?: string; like_count?: number; comment_count?: number } }) => {
-              const row = payload.new
-              if (!row?.id) return
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "posts" },
+            (payload: {
+              new: { id?: string; like_count?: number; comment_count?: number };
+            }) => {
+              const row = payload.new;
+              if (!row?.id) return;
               setPosts((prev) =>
                 prev.map((post) =>
                   post.id === row.id
                     ? {
                         ...post,
-                        like_count: row.like_count !== undefined ? row.like_count : post.like_count,
+                        like_count:
+                          row.like_count !== undefined
+                            ? row.like_count
+                            : post.like_count,
                         comment_count:
                           row.comment_count !== undefined
-                            ? Math.max(post.comment_count || 0, row.comment_count)
+                            ? Math.max(
+                                post.comment_count || 0,
+                                row.comment_count,
+                              )
                             : post.comment_count,
                       }
-                    : post
-                )
-              )
-            }
+                    : post,
+                ),
+              );
+            },
           )
           .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'likes' },
+            "postgres_changes",
+            { event: "*", schema: "public", table: "likes" },
             (payload: {
-              new?: { post_id?: string; pet_id?: string }
-              old?: { post_id?: string; pet_id?: string }
-              eventType: string
+              new?: { post_id?: string; pet_id?: string };
+              old?: { post_id?: string; pet_id?: string };
+              eventType: string;
             }) => {
-              const row = payload.new || payload.old
+              const row = payload.new || payload.old;
               if (row && row.pet_id === activePet?.id && row.post_id) {
-                const targetPostId = row.post_id
+                const targetPostId = row.post_id;
                 setPosts((prev) =>
                   prev.map((post) =>
-                    post.id === targetPostId ? { ...post, hasLiked: payload.eventType === 'INSERT' } : post
-                  )
-                )
+                    post.id === targetPostId
+                      ? { ...post, hasLiked: payload.eventType === "INSERT" }
+                      : post,
+                  ),
+                );
               }
-            }
+            },
           )
-          .subscribe()
+          .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "pets" },
+            (payload: {
+              new?: { id?: string; name?: string; username?: string; profile_image_url?: string };
+            }) => {
+              if (payload.new?.id) {
+                const updatedPet = payload.new;
+                setPosts((prev) =>
+                  prev.map((post) => {
+                    if (post.pets && post.pets.id === updatedPet.id) {
+                      return {
+                        ...post,
+                        pets: {
+                          ...post.pets,
+                          name: updatedPet.name || post.pets.name,
+                          username: updatedPet.username || post.pets.username,
+                          profile_image_url:
+                            updatedPet.profile_image_url !== undefined
+                              ? updatedPet.profile_image_url
+                              : post.pets.profile_image_url,
+                        },
+                      };
+                    }
+                    return post;
+                  }),
+                );
+              }
+            },
+          )
+          .subscribe();
       })
-      .catch(() => {})
+      .catch(() => {});
 
     return () => {
-      cancelled = true
-      if (channel && supabase) supabase.removeChannel(channel)
-    }
-  }, [activePet?.id])
+      cancelled = true;
+      if (channel && supabase) supabase.removeChannel(channel);
+    };
+  }, [activePet?.id]);
 
   const handlePostCreated = (newPost: Post) => {
-    setPosts((prev) => [newPost, ...prev])
-  }
+    setPosts((prev) => [newPost, ...prev]);
+  };
 
-  const petName = activePet?.name || user?.name || 'companion'
+  const petName = activePet?.name || user?.name || "companion";
 
   return (
     <div
       className="min-h-screen flex"
-      style={{ background: '#FDF8F2', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+      style={{
+        background: "#FDF8F2",
+        fontFamily: "Plus Jakarta Sans, sans-serif",
+      }}
     >
       {/* App Sidebar (Desktop) */}
       <AppSidebar />
@@ -165,8 +245,13 @@ export default function FeedPage() {
         {/* Mobile Sticky Top Header */}
         <header className="flex md:hidden items-center justify-between py-2 border-b border-[#ede8e1]">
           <Link href="/" className="flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[#E8843A] text-[24px]">pets</span>
-            <span className="text-[20px] font-bold text-[#163328]" style={{ fontFamily: 'Outfit, sans-serif' }}>
+            <span className="material-symbols-outlined text-[#E8843A] text-[24px]">
+              pets
+            </span>
+            <span
+              className="text-[20px] font-bold text-[#163328]"
+              style={{ fontFamily: "Outfit, sans-serif" }}
+            >
               furlo
             </span>
           </Link>
@@ -192,7 +277,9 @@ export default function FeedPage() {
               />
             ) : (
               <div className="w-10 h-10 rounded-full bg-[#f8f3ed] flex items-center justify-center border border-[#ede8e1] shrink-0">
-                <span className="material-symbols-outlined text-[#E8843A] text-[18px]">pets</span>
+                <span className="material-symbols-outlined text-[#E8843A] text-[18px]">
+                  pets
+                </span>
               </div>
             )}
             <input
@@ -210,21 +297,27 @@ export default function FeedPage() {
                 onClick={() => setIsCreateOpen(true)}
                 className="flex items-center gap-1.5 text-[13px] text-[#554338] hover:text-[#163328] transition-colors"
               >
-                <span className="material-symbols-outlined text-[18px] text-[#E8843A]">image</span>
+                <span className="material-symbols-outlined text-[18px] text-[#E8843A]">
+                  image
+                </span>
                 <span className="font-medium">Photo</span>
               </button>
               <button
                 onClick={() => setIsCreateOpen(true)}
                 className="flex items-center gap-1.5 text-[13px] text-[#554338] hover:text-[#163328] transition-colors"
               >
-                <span className="material-symbols-outlined text-[18px] text-[#2d4a3e]">quiz</span>
+                <span className="material-symbols-outlined text-[18px] text-[#2d4a3e]">
+                  quiz
+                </span>
                 <span className="font-medium">Question</span>
               </button>
               <button
                 onClick={() => setIsCreateOpen(true)}
                 className="flex items-center gap-1.5 text-[13px] text-[#554338] hover:text-[#163328] transition-colors"
               >
-                <span className="material-symbols-outlined text-[18px] text-[#974900]">lightbulb</span>
+                <span className="material-symbols-outlined text-[18px] text-[#974900]">
+                  lightbulb
+                </span>
                 <span className="font-medium">Tip</span>
               </button>
             </div>
@@ -232,7 +325,7 @@ export default function FeedPage() {
             <button
               onClick={() => setIsCreateOpen(true)}
               className="bg-[#E8843A] text-white text-[13px] font-bold px-5 py-1.5 rounded-full hover:bg-[#974900] transition-colors shadow-sm"
-              style={{ fontFamily: 'Outfit, sans-serif' }}
+              style={{ fontFamily: "Outfit, sans-serif" }}
             >
               Post Bark
             </button>
@@ -250,20 +343,26 @@ export default function FeedPage() {
         ) : posts.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 border border-[#EDE8E1] text-center flex flex-col items-center gap-4 shadow-sm">
             <div className="w-16 h-16 rounded-full bg-[#f8f3ed] flex items-center justify-center text-[#E8843A]">
-              <span className="material-symbols-outlined text-[32px]">pets</span>
+              <span className="material-symbols-outlined text-[32px]">
+                pets
+              </span>
             </div>
             <div>
-              <h3 className="font-bold text-[18px] text-[#163328]" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              <h3
+                className="font-bold text-[18px] text-[#163328]"
+                style={{ fontFamily: "Outfit, sans-serif" }}
+              >
                 The Yard is quiet right now 🐾
               </h3>
               <p className="text-[14px] text-[#554338] mt-1 max-w-[340px] mx-auto leading-relaxed">
-                Be the first pet in your pack to post a bark, ask a question, or share a photo!
+                Be the first pet in your pack to post a bark, ask a question, or
+                share a photo!
               </p>
             </div>
             <button
               onClick={() => setIsCreateOpen(true)}
               className="mt-2 bg-[#E8843A] text-white text-[14px] font-bold px-6 py-2.5 rounded-full hover:bg-[#974900] transition-all shadow-md hover:scale-[1.02] active:scale-[0.98]"
-              style={{ fontFamily: 'Outfit, sans-serif' }}
+              style={{ fontFamily: "Outfit, sans-serif" }}
             >
               + Post First Bark
             </button>
@@ -275,8 +374,15 @@ export default function FeedPage() {
                 key={post.id}
                 post={post}
                 onReport={(postId) => setReportingPostId(postId)}
+                onDelete={(deletedId) => {
+                  setPosts((prev) => prev.filter((item) => item.id !== deletedId));
+                }}
                 onPatch={(postId, patch) => {
-                  setPosts((prev) => prev.map((item) => (item.id === postId ? { ...item, ...patch } : item)))
+                  setPosts((prev) =>
+                    prev.map((item) =>
+                      item.id === postId ? { ...item, ...patch } : item,
+                    ),
+                  );
                 }}
               />
             ))}
@@ -301,5 +407,5 @@ export default function FeedPage() {
         onClose={() => setReportingPostId(null)}
       />
     </div>
-  )
+  );
 }

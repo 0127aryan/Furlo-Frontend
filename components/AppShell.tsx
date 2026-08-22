@@ -5,6 +5,8 @@ import { SplashScreen } from '@/components/SplashScreen'
 import { apiFetch } from '@/lib/api'
 import { useAuthStore } from '@/store/useAuthStore'
 
+import { ToastContainer } from '@/components/ui/ToastContainer'
+
 /**
  * AppShell — wraps all page content and manages the splash screen lifecycle.
  *
@@ -86,6 +88,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         {children}
       </div>
+      <ToastContainer />
     </div>
   )
 }
