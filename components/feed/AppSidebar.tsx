@@ -44,7 +44,7 @@ export function AppSidebar() {
     },
     {
       label: "My Paw Print",
-      href: activePet?.username ? `/p/${activePet.username}` : activePet?.id ? `/p/${activePet.id}` : user?.id ? `/pet-lover/${user.id}` : "/feed",
+      href: activePet?.username ? `/profiles/${activePet.username}` : activePet?.id ? `/profiles/${activePet.id}` : user?.id ? `/pet-lover/${user.id}` : "/feed",
       icon: "pets",
     },
     { label: "Saved Barks", href: "/saved", icon: "bookmark" },

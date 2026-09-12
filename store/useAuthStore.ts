@@ -17,6 +17,8 @@ export interface Pet {
   breed: string
   city: string
   personality_tags: string[]
+  pet_type?: string
+  species?: string
 }
 
 export interface OnboardingData {

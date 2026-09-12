@@ -64,7 +64,7 @@ interface PostCardProps {
 export function PostCard({ post, onReport, onDelete, isOwner, onPatch }: PostCardProps) {
   const { activePet } = useAuthStore();
 
-  const petSpecies = post.pets?.species || post.pets?.pet_type || "dog";
+  const petSpecies = post.pets?.species || post.pets?.pet_type;
   const hasLiked = !!post.hasLiked;
   const likeCount = post.like_count || 0;
   const [showMenu, setShowMenu] = useState(false);
@@ -242,7 +242,7 @@ export function PostCard({ post, onReport, onDelete, isOwner, onPatch }: PostCar
       {/* Header */}
       <div className="p-4 flex items-center justify-between relative z-10">
         <Link
-          href={post.pets?.username ? `/p/${post.pets.username}` : post.pets?.id ? `/p/${post.pets.id}` : '#'}
+          href={post.pets?.username ? `/profiles/${post.pets.username}` : post.pets?.id ? `/profiles/${post.pets.id}` : '#'}
           className="flex items-center gap-3 group/author hover:opacity-90 transition-opacity"
         >
           {authorAvatar ? (

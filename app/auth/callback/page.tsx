@@ -34,7 +34,8 @@ function AuthCallbackContent() {
             ? `/auth/callback?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(type)}`
             : `/auth/callback?code=${encodeURIComponent(code || '')}`
 
-          window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}${endpoint}`
+          const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || '/api/backend'
+          window.location.href = `${apiBaseUrl}${endpoint}`
           return
         }
 
@@ -58,7 +59,11 @@ function AuthCallbackContent() {
             if (isMounted) {
               setStatus('success')
               setTimeout(() => {
-                router.push('/join/select')
+                if (res.context?.activePet) {
+                  router.push('/feed')
+                } else {
+                  router.push('/join/select')
+                }
               }, 1200)
             }
             return

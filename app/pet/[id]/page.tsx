@@ -1,25 +1,29 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { AppSidebar } from '@/components/feed/AppSidebar'
 import { RightSidebar } from '@/components/feed/RightSidebar'
 import { PostCard, Post } from '@/components/feed/PostCard'
 import { ReportPostModal } from '@/components/feed/ReportPostModal'
+import { CreatePostModal } from '@/components/feed/CreatePostModal'
 import { EditPetProfileModal } from '@/components/feed/EditPetProfileModal'
 import { useAuthStore } from '@/store/useAuthStore'
 import { usePetSocialStore } from '@/store/usePetSocialStore'
 import { getSupabaseClient } from '@/lib/supabaseClient'
 import { startFollowRealtime } from '@/lib/subscribeFollowEvents'
+import { applyFeedCounts, applyPostRowCounts, subscribeYardFeed } from '@/lib/subscribeYardFeed'
 import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
+import { getPetSpecies, getPostVerb } from '@/lib/petVerbMap'
 
 interface PetProfile {
   id: string
   name: string
   username: string
   breed: string
+  pet_type?: string
   city: string
   gender?: string
   bio?: string
@@ -38,6 +42,8 @@ export default function PetProfilePage() {
   const petId = (params?.id || params?.username) as string
 
   const { activePet, user } = useAuthStore()
+  const petIdRef = useRef(activePet?.id)
+  petIdRef.current = activePet?.id
   const lastFollowEvent = usePetSocialStore((s) => s.lastEvent)
   const setSocialCounts = usePetSocialStore((s) => s.setCounts)
   const applyFollow = usePetSocialStore((s) => s.applyFollow)
@@ -50,6 +56,8 @@ export default function PetProfilePage() {
   const [following, setFollowing] = useState(false)
   const [wagSent, setWagSent] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [communities, setCommunities] = useState<{ id: string; name: string }[]>([])
   const [showPackMembers, setShowPackMembers] = useState(false)
   const [packMembersList, setPackMembersList] = useState<any[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
@@ -66,6 +74,26 @@ export default function PetProfilePage() {
     (activePet?.username && pet?.username && activePet.username.toLowerCase() === pet.username.toLowerCase()) ||
     (user?.id && pet?.users?.id && user.id === pet.users.id)
   )
+
+  useEffect(() => {
+    if (!isOwner) return
+    apiFetch('/auth/communities')
+      .then((data) => {
+        if (data && Array.isArray(data)) setCommunities(data)
+      })
+      .catch(() => setCommunities([]))
+  }, [isOwner])
+
+  useEffect(() => {
+    return subscribeYardFeed({
+      onCounts: (payload) => {
+        setPosts((prev) => applyFeedCounts(prev, payload, petIdRef.current))
+      },
+      onPostRow: (row) => {
+        setPosts((prev) => applyPostRowCounts(prev, row))
+      },
+    })
+  }, [])
 
   const handleToggleFollow = async () => {
     if (!pet?.id) return
@@ -435,6 +463,18 @@ export default function PetProfilePage() {
                 </div>
               </div>
 
+              {isOwner ? (
+                <div className="flex justify-end -mt-2 mb-4">
+                  <button
+                    onClick={() => setIsCreateOpen(true)}
+                    className="px-6 py-2 rounded-full bg-[#E8843A] text-white font-bold text-[13px] hover:bg-[#974900] transition-all flex items-center gap-2 active:scale-95 shadow-sm"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                    <span>Post {getPostVerb(getPetSpecies(pet))}</span>
+                  </button>
+                </div>
+              ) : null}
+
               {/* Name & Handle */}
               <div className="mb-4">
                 <div className="flex flex-wrap items-center gap-3 mb-1">
@@ -634,6 +674,17 @@ export default function PetProfilePage() {
         />
       )}
 
+      <CreatePostModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSuccess={(newPost) => {
+          setPosts((prev) => [newPost, ...prev])
+          setDbStats((prev) => ({ ...prev, barksCount: prev.barksCount + 1 }))
+          setIsCreateOpen(false)
+        }}
+        communities={communities}
+      />
+
       {/* Pack Members Modal Overlay */}
       {showPackMembers && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
@@ -663,7 +714,7 @@ export default function PetProfilePage() {
                 packMembersList.map((m) => (
                   <Link
                     key={m.id}
-                    href={m.username ? `/p/${m.username}` : `/pet/${m.id}`}
+                    href={m.username ? `/profiles/${m.username}` : `/profiles/${m.id}`}
                     onClick={() => setShowPackMembers(false)}
                     className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-[#EDE8E1] hover:bg-[#f6f9ff] transition-all"
                   >
@@ -720,7 +771,7 @@ export default function PetProfilePage() {
                 followingList.map((m) => (
                   <Link
                     key={m.id}
-                    href={m.username ? `/p/${m.username}` : `/pet/${m.id}`}
+                    href={m.username ? `/profiles/${m.username}` : `/profiles/${m.id}`}
                     onClick={() => setShowFollowingModal(false)}
                     className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-[#EDE8E1] hover:bg-[#f6f9ff] transition-all"
                   >
