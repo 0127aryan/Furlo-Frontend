@@ -1,11 +1,10 @@
-import { createClient, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js'
+import { type RealtimeChannel } from '@supabase/supabase-js'
 
-import { apiFetch } from '@/lib/api'
+import { getSupabaseClient } from '@/lib/supabaseClient'
 import { usePetSocialStore, type FollowEvent } from '@/store/usePetSocialStore'
 
 let started = false
 let channel: RealtimeChannel | null = null
-let supabase: SupabaseClient | null = null
 
 function isFollowEvent(payload: unknown): payload is FollowEvent {
   if (!payload || typeof payload !== 'object') return false
@@ -17,25 +16,11 @@ export function startFollowRealtime(): void {
   if (started || typeof window === 'undefined') return
   started = true
 
-  apiFetch<{ supabaseUrl: string; supabaseAnonKey: string }>('/auth/supabase-config')
-    .then(async (config) => {
-      if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
+  getSupabaseClient()
+    .then((supabase) => {
+      if (!supabase) {
         started = false
         return
-      }
-      supabase = createClient(config.supabaseUrl, config.supabaseAnonKey)
-      try {
-        const session = await apiFetch<{ access_token: string; refresh_token: string }>(
-          '/auth/realtime-session',
-        )
-        if (session?.access_token && session?.refresh_token) {
-          await supabase.auth.setSession({
-            access_token: session.access_token,
-            refresh_token: session.refresh_token,
-          })
-        }
-      } catch {
-        // Broadcast still works without a cookie session.
       }
 
       channel = supabase

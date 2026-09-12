@@ -265,7 +265,7 @@ export default function AdminSpeciesVerbsPage() {
                           )}
                         </td>
                         <td className="p-4 text-center text-xs text-[#887366]">
-                          &quot;14 {isEditing ? editVerb : item.verb}s&quot; • &quot;Add a {(isEditing ? editVerb : item.verb).toLowerCase()} as @pet...&quot;
+                          &quot;14 Sniffs&quot; • &quot;Add a sniff as @pet...&quot;
                         </td>
                         <td className="p-4 text-right">
                           {isEditing ? (

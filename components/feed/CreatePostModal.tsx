@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { apiFetch } from '@/lib/api'
 
 import { compressImage } from '@/lib/imageCompressor'
+import { getPetSpecies, getPostVerb } from '@/lib/petVerbMap'
 
 interface Community {
   id: string
@@ -16,6 +17,7 @@ interface CreatePostModalProps {
   onClose: () => void
   onSuccess: (newPost: any) => void
   communities?: Community[]
+  defaultCommunityId?: string
 }
 
 type PostType = 'regular' | 'question' | 'advice' | 'meme'
@@ -25,13 +27,22 @@ export function CreatePostModal({
   onClose,
   onSuccess,
   communities = [],
+  defaultCommunityId = '',
 }: CreatePostModalProps) {
   const { activePet, user } = useAuthStore()
+  const postVerb = getPostVerb(getPetSpecies(activePet))
   const [caption, setCaption] = useState('')
   const [postType, setPostType] = useState<PostType>('regular')
-  const [selectedCommunityId, setSelectedCommunityId] = useState<string>('')
+  const [selectedCommunityId, setSelectedCommunityId] = useState<string>(defaultCommunityId || '')
   const [mediaFiles, setMediaFiles] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Keep selectedCommunityId in sync whenever modal opens or defaultCommunityId changes
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedCommunityId(defaultCommunityId || '')
+    }
+  }, [isOpen, defaultCommunityId])
 
   if (!isOpen) return null
 
@@ -225,10 +236,10 @@ export function CreatePostModal({
             style={{ fontFamily: 'Outfit, sans-serif' }}
           >
             {isSubmitting ? (
-              <span>Posting Bark...</span>
+              <span>Posting {postVerb}...</span>
             ) : (
               <>
-                Post Bark
+                Post {postVerb}
                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
               </>
             )}

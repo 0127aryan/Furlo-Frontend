@@ -397,14 +397,14 @@ export default function JoinProfilePage() {
                   />
                 </div>
 
-                {/* Pack Name (optional handle) */}
+                {/* Pet Username / Handle (optional) */}
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-1.5">
                     <label
                       className="text-[11px] font-bold uppercase tracking-widest"
                       style={{ color: '#476558' }}
                     >
-                      Pack Name
+                      Pet Username
                     </label>
                     <span className="text-[11px] font-medium text-[#887366]">(optional)</span>
                   </div>
@@ -731,7 +731,7 @@ export default function JoinProfilePage() {
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-1.5">
                     <label className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#476558' }}>
-                      Pack Name
+                      Username
                     </label>
                     <span className="text-[11px] font-medium text-[#887366]">(optional)</span>
                   </div>
