@@ -25,6 +25,9 @@ interface Community {
   status?: string
   is_approved?: boolean
   is_verified?: boolean
+  is_joined?: boolean
+  joined?: boolean
+  is_active?: boolean
   created_at: string
 }
 
