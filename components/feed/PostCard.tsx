@@ -11,6 +11,19 @@ export interface Post {
   id: string;
   caption: string;
   post_type: "regular" | "question" | "advice" | "meme";
+  topic_category?: string;
+  is_solved?: boolean;
+  accepted_answer_id?: string;
+  accepted_answer?: {
+    id: string;
+    content: string;
+    created_at: string;
+    pets?: {
+      name: string;
+      username: string;
+      profile_image_url: string;
+    };
+  };
   location_city?: string;
   like_count: number;
   comment_count: number;
@@ -120,8 +133,12 @@ export function PostCard({ post, onReport, onDelete, isOwner, onPatch }: PostCar
   const [submittingComment, setSubmittingComment] = useState(false);
 
   const commentCount = Math.max(post.comment_count || 0, comments.length);
-  const verbSingular = getCommentVerb(petSpecies);
-  const verbPlural = getCommentVerbPlural(petSpecies, commentCount);
+  const verbSingular = post.post_type === "question" ? "Answer" : getCommentVerb(petSpecies);
+  const verbPlural = post.post_type === "question"
+    ? commentCount === 1
+      ? "Answer"
+      : "Answers"
+    : getCommentVerbPlural(petSpecies, commentCount);
 
   const patch = (
     next: Partial<Pick<Post, "like_count" | "comment_count" | "hasLiked">>,
@@ -285,8 +302,30 @@ export function PostCard({ post, onReport, onDelete, isOwner, onPatch }: PostCar
           </div>
         </Link>
 
+        {/* Q&A Badges */}
+        {post.post_type === "question" && (
+          <div className="flex items-center gap-2 ml-auto mr-2">
+            {post.topic_category && (
+              <span className="hidden sm:inline-flex items-center gap-1 bg-[#F8F3ED] text-[#163328] px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                🐾 {post.topic_category}
+              </span>
+            )}
+            {post.is_solved ? (
+              <span className="bg-[#E4F5EB] text-[#1E7745] font-bold text-[12px] px-3 py-1 rounded-full flex items-center gap-1">
+                <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                <span>Solved</span>
+              </span>
+            ) : (
+              <span className="bg-[#FFDBC7] text-[#974900] font-bold text-[12px] px-3 py-1 rounded-full flex items-center gap-1">
+                <span>Question</span>
+                <span className="font-bold text-[13px]">?</span>
+              </span>
+            )}
+          </div>
+        )}
+
         {/* 3-dots Menu */}
-        <div className="relative">
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={() => setShowMenu(!showMenu)}
             className="text-[#887366] hover:bg-[#f6f9ff] p-1.5 rounded-full transition-colors"
@@ -442,7 +481,10 @@ export function PostCard({ post, onReport, onDelete, isOwner, onPatch }: PostCar
       )}
 
       {/* Action Bar */}
-      <div className="px-4 py-3 flex items-center gap-6 border-t border-[#ede8e1]/40">
+      <div
+        className="px-4 py-3 flex items-center gap-6 border-t border-[#ede8e1]/40"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           onClick={handleToggleLike}
           className={`flex items-center gap-1.5 font-bold text-[13px] transition-all group ${
@@ -494,7 +536,10 @@ export function PostCard({ post, onReport, onDelete, isOwner, onPatch }: PostCar
 
       {/* Comments Section */}
       {showComments && (
-        <div className="px-4 pb-4 pt-2 border-t border-[#ede8e1] bg-[#FFFBF7]/60 space-y-3">
+        <div
+          className="px-4 pb-4 pt-2 border-t border-[#ede8e1] bg-[#FFFBF7]/60 space-y-3"
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Add Comment Input */}
           <form onSubmit={handleAddComment} className="flex gap-2">
             {activePet?.profile_image_url ? (

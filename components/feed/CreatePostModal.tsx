@@ -18,9 +18,19 @@ interface CreatePostModalProps {
   onSuccess: (newPost: any) => void
   communities?: Community[]
   defaultCommunityId?: string
+  defaultPostType?: PostType
 }
 
 type PostType = 'regular' | 'question' | 'advice' | 'meme'
+
+const Q_CATEGORIES = [
+  'Diet & Nutrition',
+  'Puppy Training',
+  'Health & Wellness',
+  'Behavior & Play',
+  'Cat Care',
+  'General Care',
+]
 
 export function CreatePostModal({
   isOpen,
@@ -28,21 +38,24 @@ export function CreatePostModal({
   onSuccess,
   communities = [],
   defaultCommunityId = '',
+  defaultPostType = 'regular',
 }: CreatePostModalProps) {
   const { activePet, user } = useAuthStore()
   const postVerb = getPostVerb(getPetSpecies(activePet))
   const [caption, setCaption] = useState('')
-  const [postType, setPostType] = useState<PostType>('regular')
+  const [postType, setPostType] = useState<PostType>(defaultPostType || 'regular')
+  const [topicCategory, setTopicCategory] = useState('Diet & Nutrition')
   const [selectedCommunityId, setSelectedCommunityId] = useState<string>(defaultCommunityId || '')
   const [mediaFiles, setMediaFiles] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Keep selectedCommunityId in sync whenever modal opens or defaultCommunityId changes
+  // Keep selectedCommunityId & postType in sync whenever modal opens
   useEffect(() => {
     if (isOpen) {
       setSelectedCommunityId(defaultCommunityId || '')
+      setPostType(defaultPostType || 'regular')
     }
-  }, [isOpen, defaultCommunityId])
+  }, [isOpen, defaultCommunityId, defaultPostType])
 
   if (!isOpen) return null
 
@@ -77,6 +90,7 @@ export function CreatePostModal({
           communityId: selectedCommunityId || null,
           caption,
           postType,
+          topicCategory: postType === 'question' ? topicCategory : null,
           mediaData: mediaFiles,
         },
       })
@@ -168,6 +182,32 @@ export function CreatePostModal({
               })}
             </div>
           </div>
+
+          {/* Topic Category for Questions */}
+          {postType === 'question' && (
+            <div className="space-y-1.5 animate-fadeIn">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-[#974900]">QUESTION TOPIC</label>
+              <div className="flex flex-wrap gap-1.5">
+                {Q_CATEGORIES.map((cat) => {
+                  const isSelected = topicCategory === cat
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setTopicCategory(cat)}
+                      className={`px-3 py-1 rounded-full text-[12px] font-medium transition-all ${
+                        isSelected
+                          ? 'bg-[#163328] text-white font-bold shadow-xs'
+                          : 'bg-[#f8f3ed] text-[#424844] hover:bg-[#e8843a]/10 border border-[#EDE8E1]'
+                      }`}
+                    >
+                      🏷️ {cat}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Caption Textarea */}
           <div className="space-y-1.5 relative">

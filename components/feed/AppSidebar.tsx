@@ -36,6 +36,7 @@ export function AppSidebar() {
   const navItems = [
     { label: "The Yard", href: "/feed", icon: "home" },
     { label: "Discover Packs", href: "/packs", icon: "explore" },
+    { label: "Q&A Hub", href: "/qa", icon: "quiz", badge: true },
     {
       label: "Notifications",
       href: "/notifications",
