@@ -1,5 +1,7 @@
 'use client'
 
+import { AdminTableSkeleton } from '@/components/skeletons'
+
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/api'
@@ -217,7 +219,7 @@ export default function AdminSpeciesVerbsPage() {
           </div>
 
           {loading ? (
-            <div className="p-8 text-center text-[#887366]">Loading database records...</div>
+            <AdminTableSkeleton rows={8} />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm text-[#e2e9f1]">

@@ -5,6 +5,7 @@ export interface User {
   email: string
   is_admin: boolean
   status: string
+  role?: string
   name?: string
 }
 
@@ -19,6 +20,8 @@ export interface Pet {
   personality_tags: string[]
   pet_type?: string
   species?: string
+  is_verified?: boolean
+  is_founding_pet?: boolean
 }
 
 export interface OnboardingData {

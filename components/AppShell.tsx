@@ -6,6 +6,10 @@ import { apiFetch } from '@/lib/api'
 import { useAuthStore } from '@/store/useAuthStore'
 
 import { ToastContainer } from '@/components/ui/ToastContainer'
+import { AnnouncementBanner } from '@/components/ui/AnnouncementBanner'
+import { WebPushBootstrap } from '@/components/WebPushBootstrap'
+import { subscribePetBadges } from '@/lib/subscribePetBadges'
+import { startNotificationRealtime } from '@/lib/subscribeNotifications'
 
 /**
  * AppShell — wraps all page content and manages the splash screen lifecycle.
@@ -21,7 +25,7 @@ import { ToastContainer } from '@/components/ui/ToastContainer'
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [splashDone, setSplashDone] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const { setUser, setActivePet, onboardingData, setOnboardingData } = useAuthStore()
+  const { user, setUser, setActivePet, onboardingData, setOnboardingData } = useAuthStore()
 
   // Run on client — avoids SSR mismatch
   useEffect(() => {
@@ -68,8 +72,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     recoverSession();
   }, [setUser, setActivePet])
 
+  useEffect(() => {
+    if (!user?.id) return
+    startNotificationRealtime(user.id)
+  }, [user?.id])
+
+  useEffect(() => {
+    // Subscribe to real-time pet badge updates across app shell
+    const unsub = subscribePetBadges(() => {})
+    return () => unsub()
+  }, [])
+
   return (
     <div suppressHydrationWarning>
+      <WebPushBootstrap enabled={splashDone && Boolean(user?.id)} />
       {!splashDone && (
         <SplashScreen
           minDuration={2000}
@@ -86,6 +102,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           visibility: splashDone ? 'visible' : 'hidden',
         }}
       >
+        <AnnouncementBanner />
         {children}
       </div>
       <ToastContainer />

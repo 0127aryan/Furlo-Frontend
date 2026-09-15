@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/api'
+import { SidebarWidgetSkeleton } from '@/components/skeletons'
 import { CommunityDisclaimerFooter } from './CommunityDisclaimerFooter'
 
 interface DbPack {
@@ -92,7 +93,7 @@ export function RightSidebar() {
         </h3>
 
         {loadingPacks ? (
-          <p className="text-[12px] text-[#887366] text-center py-2">Loading packs...</p>
+          <SidebarWidgetSkeleton />
         ) : packs.length === 0 ? (
           <p className="text-[12px] text-[#887366] text-center py-2">No active packs available.</p>
         ) : (
@@ -139,7 +140,7 @@ export function RightSidebar() {
         </h3>
 
         {loadingHashtags ? (
-          <p className="text-[12px] text-[#887366] text-center py-2">Loading trends...</p>
+          <SidebarWidgetSkeleton />
         ) : hashtags.length === 0 ? (
           <p className="text-[12px] text-[#887366] text-center py-2">No trending hashtags yet.</p>
         ) : (
@@ -171,7 +172,7 @@ export function RightSidebar() {
         </div>
 
         {loadingTrending ? (
-          <p className="text-[12px] text-[#887366] text-center py-2">Loading questions...</p>
+          <SidebarWidgetSkeleton />
         ) : trending.length === 0 ? (
           <p className="text-[12px] text-[#887366] text-center py-2">No trending questions yet.</p>
         ) : (
@@ -210,7 +211,7 @@ export function RightSidebar() {
         </div>
 
         {loadingHelpers ? (
-          <p className="text-[12px] text-[#887366] text-center py-2">Loading helpful pets...</p>
+          <SidebarWidgetSkeleton />
         ) : helpers.length === 0 ? (
           <p className="text-[12px] text-[#887366] text-center py-2">No Q&A helpful pets yet.</p>
         ) : (
@@ -218,7 +219,7 @@ export function RightSidebar() {
             {helpers.slice(0, 4).map((helper) => (
               <Link
                 key={helper.id}
-                href={helper.username ? `/profiles/${helper.username}` : `/profiles/${helper.id}`}
+                href={helper.username ? `/pet/${helper.username}` : `/pet/${helper.id}`}
                 className="flex items-center justify-between hover:bg-[#F8F3ED] p-1.5 rounded-2xl transition-colors"
               >
                 <div className="flex items-center gap-2.5">

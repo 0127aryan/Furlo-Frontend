@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ListRowsSkeleton } from "@/components/skeletons";
 import { apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/store/useAuthStore";
 import { toast } from "@/lib/toast";
@@ -38,6 +39,8 @@ export interface Post {
     pet_type?: string;
     city: string;
     profile_image_url: string;
+    is_verified?: boolean;
+    is_founding_pet?: boolean;
   };
   communities?: {
     id: string;
@@ -219,8 +222,9 @@ export function PostCard({ post, onReport, onDelete, isOwner, onPatch }: PostCar
         });
         setCommentInput("");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("[PostCard] Error posting comment:", err);
+      toast.error(err?.message || "Failed to post comment");
     } finally {
       setSubmittingComment(false);
     }
@@ -259,7 +263,7 @@ export function PostCard({ post, onReport, onDelete, isOwner, onPatch }: PostCar
       {/* Header */}
       <div className="p-4 flex items-center justify-between relative z-10">
         <Link
-          href={post.pets?.username ? `/profiles/${post.pets.username}` : post.pets?.id ? `/profiles/${post.pets.id}` : '#'}
+          href={post.pets?.username ? `/pet/${post.pets.username}` : post.pets?.id ? `/pet/${post.pets.id}` : '#'}
           className="flex items-center gap-3 group/author hover:opacity-90 transition-opacity"
         >
           {authorAvatar ? (
@@ -284,12 +288,20 @@ export function PostCard({ post, onReport, onDelete, isOwner, onPatch }: PostCar
               >
                 {authorName}
               </h4>
-              <span
-                className="material-symbols-outlined text-[#E8843A] text-[15px]"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                verified
-              </span>
+              {post.pets?.is_founding_pet && (
+                <span className="text-[14px] leading-none" title="Founding Pet 👑">
+                  👑
+                </span>
+              )}
+              {post.pets?.is_verified && (
+                <span
+                  className="material-symbols-outlined text-[#15803D] text-[15px]"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                  title="Verified Paw"
+                >
+                  verified
+                </span>
+              )}
               {communityName && (
                 <span className="text-[12px] text-[#887366] font-medium ml-1">
                   in <strong className="text-[#2d4a3e]">{communityName}</strong>
@@ -574,9 +586,7 @@ export function PostCard({ post, onReport, onDelete, isOwner, onPatch }: PostCar
 
           {/* Comments List */}
           {loadingComments ? (
-            <p className="text-[12px] text-[#887366] text-center py-2">
-              Loading {verbPlural.toLowerCase()}...
-            </p>
+            <ListRowsSkeleton count={2} />
           ) : comments.length === 0 ? (
             <p className="text-[12px] text-[#887366] text-center py-2">
               No {verbPlural.toLowerCase()} yet. Be the first to reply!

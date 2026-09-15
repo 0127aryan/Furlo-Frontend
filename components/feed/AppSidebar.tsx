@@ -5,12 +5,15 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { apiFetch } from "@/lib/api";
+import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
+import { unregisterWebPushToken } from "@/lib/webPushNotifications";
 
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { activePet, user, clearAuth } = useAuthStore();
   const [loggingOut, setLoggingOut] = useState(false);
+  const { count: unreadCount } = useUnreadNotificationCount();
 
   const petName = activePet?.name || user?.name || "My Pet";
   const handle = activePet?.username
@@ -24,6 +27,7 @@ export function AppSidebar() {
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
+      await unregisterWebPushToken();
       await apiFetch("/auth/logout", { method: "POST" });
     } catch (err) {
       console.warn("[AppSidebar] Logout error:", err);
@@ -32,6 +36,12 @@ export function AppSidebar() {
       router.push("/join?mode=signin");
     }
   };
+
+  const isAdmin = Boolean(
+    user?.is_admin === true ||
+    user?.role === "super_admin" ||
+    user?.role === "admin"
+  );
 
   const navItems = [
     { label: "The Yard", href: "/feed", icon: "home" },
@@ -45,10 +55,20 @@ export function AppSidebar() {
     },
     {
       label: "My Paw Print",
-      href: activePet?.username ? `/profiles/${activePet.username}` : activePet?.id ? `/profiles/${activePet.id}` : user?.id ? `/pet-lover/${user.id}` : "/feed",
+      href: activePet?.username ? `/pet/${activePet.username}` : activePet?.id ? `/pet/${activePet.id}` : user?.id ? `/pet-lover/${user.id}` : "/feed",
       icon: "pets",
     },
     { label: "Saved Barks", href: "/saved", icon: "bookmark" },
+    ...(isAdmin
+      ? [
+          {
+            label: "Admin Portal",
+            href: "/admin",
+            icon: "admin_panel_settings",
+            isAdminTab: true,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -79,13 +99,18 @@ export function AppSidebar() {
         {navItems.map((item) => {
           const isActive =
             pathname === item.href ||
+            (item.href === "/admin" && pathname.startsWith("/admin")) ||
             (item.href === "/feed" && pathname === "/");
           return (
             <Link
               key={item.label}
               href={item.href}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
-                isActive
+                item.isAdminTab
+                  ? isActive
+                    ? "bg-[#163328] text-white font-bold shadow-sm"
+                    : "bg-[#163328]/10 text-[#163328] hover:bg-[#163328] hover:text-white font-semibold"
+                  : isActive
                   ? "bg-[#E8843A]/10 text-[#163328] font-bold"
                   : "text-[#424844] hover:bg-[#edf4fd] hover:text-[#163328]"
               }`}
@@ -93,7 +118,9 @@ export function AppSidebar() {
               <span
                 className="material-symbols-outlined text-[22px]"
                 style={{
-                  color: isActive ? "#E8843A" : "#424844",
+                  color: item.isAdminTab
+                    ? isActive ? "#34D399" : "#163328"
+                    : isActive ? "#E8843A" : "#424844",
                   fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0",
                 }}
               >
@@ -105,9 +132,18 @@ export function AppSidebar() {
               >
                 {item.label}
               </span>
-              {item.badge && (
-                <div className="ml-auto w-2 h-2 bg-[#E8843A] rounded-full" />
+              {item.isAdminTab && (
+                <span className="ml-auto px-1.5 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded bg-[#163328] text-[#34D399] border border-[#34D399]/30">
+                  Admin
+                </span>
               )}
+              {item.label === "Notifications" && unreadCount > 0 ? (
+                <span className="ml-auto min-w-[22px] h-[22px] px-1.5 rounded-full bg-[#E8843A] text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              ) : item.badge && !item.isAdminTab ? (
+                <div className="ml-auto w-2 h-2 bg-[#E8843A] rounded-full" />
+              ) : null}
             </Link>
           );
         })}

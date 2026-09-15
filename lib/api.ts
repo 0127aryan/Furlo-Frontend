@@ -7,6 +7,7 @@ const API_PREFIX = '/api/backend'
 
 interface FetchOptions extends RequestInit {
   json?: any
+  skipAuth?: boolean
 }
 
 export async function apiFetch<T = any>(
@@ -38,7 +39,17 @@ export async function apiFetch<T = any>(
       useAuthStore.getState().clearAuth()
       // Skip toast for background session checks (like /auth/me) to avoid noisy prompts on landing
       if (!path.includes('/auth/me') && !path.includes('/auth/logout')) {
-        toast.error('Session expired. Please log in again 🐾')
+        toast.error('Session expired. Redirecting you to login page... 🐾')
+        const pathname = window.location.pathname
+        if (
+          !pathname.startsWith('/login') &&
+          !pathname.startsWith('/signup') &&
+          pathname !== '/'
+        ) {
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 600)
+        }
       }
     }
     if (path.includes('/auth/logout')) {
@@ -59,9 +70,21 @@ export async function apiFetch<T = any>(
       errorMessage = response.statusText || errorMessage
     }
 
-    if (errorMessage === 'Unauthorized' || response.status === 401) {
+    if (errorMessage === 'Unauthorized' && response.status !== 401) {
       if (!path.includes('/auth/me')) {
-        toast.error('Please log in to perform this action 🐾')
+        toast.error('Session expired. Redirecting you to login page... 🐾')
+        if (typeof window !== 'undefined') {
+          const pathname = window.location.pathname
+          if (
+            !pathname.startsWith('/login') &&
+            !pathname.startsWith('/signup') &&
+            pathname !== '/'
+          ) {
+            setTimeout(() => {
+              window.location.href = '/login'
+            }, 600)
+          }
+        }
       }
     }
 
