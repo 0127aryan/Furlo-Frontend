@@ -11,9 +11,7 @@ export async function getSupabaseClient(): Promise<SupabaseClient | null> {
       const config = await apiFetch<{
         supabaseUrl: string
         supabaseAnonKey: string
-        accessToken?: string
-        refreshToken?: string
-      }>('/auth/supabase-config')
+      }>('/auth/supabase-config', { skipAuth: true })
 
       if (!config?.supabaseUrl || !config?.supabaseAnonKey) {
         return null
@@ -21,11 +19,19 @@ export async function getSupabaseClient(): Promise<SupabaseClient | null> {
 
       const client = createClient(config.supabaseUrl, config.supabaseAnonKey)
 
-      if (config.accessToken && config.refreshToken) {
-        await client.auth.setSession({
-          access_token: config.accessToken,
-          refresh_token: config.refreshToken,
-        })
+      try {
+        const session = await apiFetch<{
+          access_token: string
+          refresh_token: string
+        }>('/auth/realtime-session')
+        if (session?.access_token && session?.refresh_token) {
+          await client.auth.setSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+          })
+        }
+      } catch {
+        // Not signed in — broadcast channels still work without auth
       }
 
       return client

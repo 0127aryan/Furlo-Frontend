@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
+import { QuestionDetailSkeleton } from '@/components/skeletons'
 import { AppSidebar } from '@/components/feed/AppSidebar'
 import { RightSidebar } from '@/components/feed/RightSidebar'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -321,12 +322,7 @@ export default function QuestionDetailPage() {
             )}
           </div>
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-[#727974]">
-              <span className="material-symbols-outlined text-[36px] text-[#E8843A] animate-spin">
-                progress_activity
-              </span>
-              <p className="text-[14px]">Loading question details...</p>
-            </div>
+            <QuestionDetailSkeleton />
           ) : error || !question ? (
             <div className="bg-white rounded-3xl p-10 border border-[#EDE8E1] text-center flex flex-col items-center gap-4 shadow-sm my-8">
               <span className="material-symbols-outlined text-[48px] text-[#974900]">help</span>

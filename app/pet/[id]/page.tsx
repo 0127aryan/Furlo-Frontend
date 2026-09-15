@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { ListRowsSkeleton, ProfileSkeleton } from '@/components/skeletons'
 import { AppSidebar } from '@/components/feed/AppSidebar'
 import { RightSidebar } from '@/components/feed/RightSidebar'
 import { PostCard, Post } from '@/components/feed/PostCard'
@@ -14,6 +15,7 @@ import { usePetSocialStore } from '@/store/usePetSocialStore'
 import { getSupabaseClient } from '@/lib/supabaseClient'
 import { startFollowRealtime } from '@/lib/subscribeFollowEvents'
 import { applyFeedCounts, applyPostRowCounts, subscribeYardFeed } from '@/lib/subscribeYardFeed'
+import { subscribePetBadges } from '@/lib/subscribePetBadges'
 import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { getPetSpecies, getPostVerb } from '@/lib/petVerbMap'
@@ -30,6 +32,8 @@ interface PetProfile {
   personality_tags?: string[]
   profile_image_url?: string
   created_at?: string
+  is_verified?: boolean
+  is_founding_pet?: boolean
   users?: {
     id: string
     name: string
@@ -85,14 +89,50 @@ export default function PetProfilePage() {
   }, [isOwner])
 
   useEffect(() => {
-    return subscribeYardFeed({
+    const unsubFeed = subscribeYardFeed({
       onCounts: (payload) => {
         setPosts((prev) => applyFeedCounts(prev, payload, petIdRef.current))
       },
       onPostRow: (row) => {
         setPosts((prev) => applyPostRowCounts(prev, row))
       },
+      onRemove: (removedId) => {
+        setPosts((prev) => prev.filter((p) => p.id !== removedId))
+      },
     })
+
+    const unsubBadges = subscribePetBadges((payload) => {
+      setPet((prev) => {
+        if (prev && (prev.id === payload.petId || prev.username === payload.petId)) {
+          return {
+            ...prev,
+            is_verified: payload.is_verified,
+            is_founding_pet: payload.is_founding_pet,
+          }
+        }
+        return prev
+      })
+
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.pets?.id === payload.petId
+            ? {
+                ...post,
+                pets: {
+                  ...post.pets,
+                  is_verified: payload.is_verified,
+                  is_founding_pet: payload.is_founding_pet,
+                },
+              }
+            : post
+        )
+      )
+    })
+
+    return () => {
+      unsubFeed()
+      unsubBadges()
+    }
   }, [])
 
   const handleToggleFollow = async () => {
@@ -235,6 +275,16 @@ export default function PetProfilePage() {
           setPet(data.pet)
           setPosts(data.posts || [])
 
+          // Canonicalize URL to pet username if current path contains UUID or differs from username
+          if (
+            typeof window !== 'undefined' &&
+            data.pet.username &&
+            window.location.pathname.startsWith('/pet/') &&
+            window.location.pathname !== `/pet/${data.pet.username}`
+          ) {
+            window.history.replaceState(null, '', `/pet/${data.pet.username}`)
+          }
+
           const barks = data.posts ? data.posts.length : 0
           const treats = (data.posts || []).reduce(
             (sum, p) => sum + (p.like_count || 0),
@@ -363,12 +413,7 @@ export default function PetProfilePage() {
         </header>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 text-[#727974]">
-            <span className="material-symbols-outlined text-[36px] text-[#E8843A] animate-spin">
-              progress_activity
-            </span>
-            <p className="text-[14px]">Fetching pet profile...</p>
-          </div>
+          <ProfileSkeleton />
         ) : error || !pet ? (
           <div className="bg-white rounded-3xl p-10 border border-[#EDE8E1] text-center flex flex-col items-center gap-4 shadow-sm my-8">
             <span className="material-symbols-outlined text-[48px] text-[#974900]">pets</span>
@@ -408,14 +453,26 @@ export default function PetProfilePage() {
                       </div>
                     )}
                   </div>
-                  {/* Verified Badge */}
-                  <div
-                    className="absolute bottom-1 right-1 w-7 h-7 bg-[#C9EAD9] text-[#163328] rounded-full flex items-center justify-center border-2 border-white shadow-sm"
-                    title="Verified Paw"
-                  >
-                    <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                      verified
-                    </span>
+                  {/* Verified & Founding Badges */}
+                  <div className="absolute bottom-1 right-1 flex items-center gap-1">
+                    {pet.is_founding_pet && (
+                      <div
+                        className="w-7 h-7 bg-[#FEF3C7] text-[#92400E] rounded-full flex items-center justify-center border-2 border-white shadow-sm text-[13px]"
+                        title="Founding Pet 👑"
+                      >
+                        👑
+                      </div>
+                    )}
+                    {pet.is_verified && (
+                      <div
+                        className="w-7 h-7 bg-[#C9EAD9] text-[#163328] rounded-full flex items-center justify-center border-2 border-white shadow-sm"
+                        title="Verified Paw"
+                      >
+                        <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                          verified
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -477,13 +534,27 @@ export default function PetProfilePage() {
 
               {/* Name & Handle */}
               <div className="mb-4">
-                <div className="flex flex-wrap items-center gap-3 mb-1">
+                <div className="flex flex-wrap items-center gap-2.5 mb-1">
                   <h1 className="text-[28px] md:text-[36px] font-bold text-[#011E14] leading-tight" style={{ fontFamily: 'Outfit, sans-serif' }}>
                     {pet.name}
                   </h1>
                   <span className="bg-[#C9EAD9] text-[#163328] px-3.5 py-1 rounded-full text-[12px] font-bold uppercase tracking-wider">
                     {pet.breed || 'Companion'}
                   </span>
+                  {pet.is_founding_pet && (
+                    <span className="inline-flex items-center gap-1 bg-[#FEF3C7] border border-[#F59E0B]/30 text-[#92400E] px-3 py-1 rounded-full text-[12px] font-extrabold tracking-wide shadow-2xs">
+                      <span>👑</span>
+                      <span>Founding Pet</span>
+                    </span>
+                  )}
+                  {pet.is_verified && (
+                    <span className="inline-flex items-center gap-1 bg-[#DCFCE7] border border-[#16A34A]/30 text-[#15803D] px-3 py-1 rounded-full text-[12px] font-bold tracking-wide shadow-2xs">
+                      <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        verified
+                      </span>
+                      <span>Verified Paw</span>
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 text-[14px] text-[#424844] font-medium">
                   <span>@{pet.username}</span>
@@ -703,9 +774,7 @@ export default function PetProfilePage() {
 
             <div className="p-6 overflow-y-auto flex-1 space-y-3">
               {loadingMembers ? (
-                <div className="py-8 text-center text-[#727974] text-[14px]">
-                  Loading pack members...
-                </div>
+                <ListRowsSkeleton count={5} />
               ) : packMembersList.length === 0 ? (
                 <div className="py-8 text-center text-[#727974] text-[14px]">
                   No pack members yet. Be the first to join the pack! 🐾
@@ -760,9 +829,7 @@ export default function PetProfilePage() {
 
             <div className="p-6 overflow-y-auto flex-1 space-y-3">
               {loadingFollowing ? (
-                <div className="py-8 text-center text-[#727974] text-[14px]">
-                  Loading following list...
-                </div>
+                <ListRowsSkeleton count={5} />
               ) : followingList.length === 0 ? (
                 <div className="py-8 text-center text-[#727974] text-[14px]">
                   {pet?.name} is not following any pets yet 🐾

@@ -5,12 +5,14 @@ import Link from "next/link";
 import { AppSidebar } from "@/components/feed/AppSidebar";
 import { RightSidebar } from "@/components/feed/RightSidebar";
 import { PostCard, Post } from "@/components/feed/PostCard";
+import { FeedListSkeleton } from "@/components/skeletons";
 import { CreatePostModal } from "@/components/feed/CreatePostModal";
 import { ReportPostModal } from "@/components/feed/ReportPostModal";
 import { useAuthStore } from "@/store/useAuthStore";
 import { apiFetch } from "@/lib/api";
 import { startFollowRealtime } from "@/lib/subscribeFollowEvents";
 import { applyFeedCounts, applyPostRowCounts, subscribeYardFeed } from "@/lib/subscribeYardFeed";
+import { subscribePetBadges } from "@/lib/subscribePetBadges";
 import { getPetSpecies, getPostVerb, getPostVerbPlural } from "@/lib/petVerbMap";
 
 export default function FeedPage() {
@@ -60,7 +62,7 @@ export default function FeedPage() {
   }, [activePet?.id]);
 
   useEffect(() => {
-    return subscribeYardFeed({
+    const unsubFeed = subscribeYardFeed({
       onPost: (payload) => {
         if (!payload?.id) return;
         setPosts((prev) =>
@@ -73,7 +75,32 @@ export default function FeedPage() {
       onPostRow: (row) => {
         setPosts((prev) => applyPostRowCounts(prev, row));
       },
+      onRemove: (removedId) => {
+        setPosts((prev) => prev.filter((p) => p.id !== removedId));
+      },
     });
+
+    const unsubBadges = subscribePetBadges((payload) => {
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.pets?.id === payload.petId
+            ? {
+                ...post,
+                pets: {
+                  ...post.pets,
+                  is_verified: payload.is_verified,
+                  is_founding_pet: payload.is_founding_pet,
+                },
+              }
+            : post
+        )
+      );
+    });
+
+    return () => {
+      unsubFeed();
+      unsubBadges();
+    };
   }, []);
 
   const handlePostCreated = (newPost: Post) => {
@@ -187,12 +214,7 @@ export default function FeedPage() {
 
         {/* Feed Posts List */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-3 text-[#887366]">
-            <span className="material-symbols-outlined text-[32px] text-[#E8843A] animate-spin">
-              progress_activity
-            </span>
-            <p className="text-[14px]">Fetching {postVerbPluralLower} in The Yard...</p>
-          </div>
+          <FeedListSkeleton />
         ) : posts.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 border border-[#EDE8E1] text-center flex flex-col items-center gap-4 shadow-sm">
             <div className="w-16 h-16 rounded-full bg-[#f8f3ed] flex items-center justify-center text-[#E8843A]">

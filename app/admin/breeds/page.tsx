@@ -1,5 +1,7 @@
 'use client'
 
+import { AdminTableSkeleton } from '@/components/skeletons'
+
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/api'
@@ -198,10 +200,7 @@ export default function AdminBreedsPage() {
 
         {/* List of Submissions */}
         {loading ? (
-          <div className="p-12 text-center text-[#887366] flex flex-col items-center gap-2">
-            <span className="material-symbols-outlined text-[32px] animate-spin">progress_activity</span>
-            <p className="text-[14px]">Loading approval submissions...</p>
-          </div>
+          <AdminTableSkeleton rows={6} />
         ) : error ? (
           <div className="p-6 rounded-2xl border bg-[#fef2f2] border-[#fca5a5] text-[#991b1b]">
             <p className="font-semibold">{error}</p>

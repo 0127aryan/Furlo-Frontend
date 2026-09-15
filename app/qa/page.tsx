@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { QuestionListSkeleton } from '@/components/skeletons'
 import { AppSidebar } from '@/components/feed/AppSidebar'
 import { PostCard } from '@/components/feed/PostCard'
 import { AskQuestionModal } from '@/components/feed/AskQuestionModal'
@@ -207,12 +208,7 @@ export default function QAHubPage() {
 
         {/* Feed Cards Container */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 text-[#727974]">
-            <span className="material-symbols-outlined text-[36px] text-[#E8843A] animate-spin">
-              progress_activity
-            </span>
-            <p className="text-[14px]">Fetching pet questions...</p>
-          </div>
+          <QuestionListSkeleton />
         ) : questions.length === 0 ? (
           <div className="bg-white rounded-3xl p-10 text-center border border-[#EDE8E1] text-[#727974] my-4 space-y-3">
             <span className="material-symbols-outlined text-[48px] text-[#E8843A]">help</span>

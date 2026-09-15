@@ -15,6 +15,7 @@ type Listener = {
   onPost?: (post: Post) => void
   onCounts?: (payload: FeedCountPayload) => void
   onPostRow?: (row: { id?: string; like_count?: number; comment_count?: number }) => void
+  onRemove?: (postId: string) => void
 }
 
 const listeners = new Set<Listener>()
@@ -97,12 +98,21 @@ function ensureChannel() {
         .on('broadcast', { event: 'counts' }, ({ payload }: { payload: FeedCountPayload }) => {
           if (payload?.postId) listeners.forEach((listener) => listener.onCounts?.(payload))
         })
+        .on('broadcast', { event: 'post_removed' }, ({ payload }: { payload: { postId?: string } }) => {
+          if (payload?.postId) listeners.forEach((listener) => listener.onRemove?.(payload.postId!))
+        })
         .on(
           'postgres_changes',
           { event: 'UPDATE', schema: 'public', table: 'posts' },
-          (payload: { new?: { id?: string; like_count?: number; comment_count?: number } }) => {
+          (payload: { new?: { id?: string; like_count?: number; comment_count?: number; status?: string } }) => {
             const row = payload.new
-            if (row?.id) listeners.forEach((listener) => listener.onPostRow?.(row))
+            if (row?.id) {
+              if (row.status === 'removed_by_admin' || row.status === 'deleted') {
+                listeners.forEach((listener) => listener.onRemove?.(row.id!))
+              } else {
+                listeners.forEach((listener) => listener.onPostRow?.(row))
+              }
+            }
           }
         )
 

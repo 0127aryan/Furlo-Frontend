@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { PackListSkeleton } from '@/components/skeletons'
 import { AppSidebar } from '@/components/feed/AppSidebar'
 import { RightSidebar } from '@/components/feed/RightSidebar'
 import { CreatePackModal } from '@/components/feed/CreatePackModal'
@@ -318,12 +319,7 @@ export default function PacksDiscoveryPage() {
           </div>
 
           {loading ? (
-            <div className="py-20 text-center text-[#727974] flex flex-col items-center gap-3">
-              <span className="material-symbols-outlined text-[36px] text-[#E8843A] animate-spin">
-                progress_activity
-              </span>
-              <p className="text-[14px]">Fetching packs...</p>
-            </div>
+            <PackListSkeleton />
           ) : communities.length === 0 ? (
             <div className="bg-white rounded-3xl p-10 text-center border border-[#EDE8E1] my-4 space-y-3">
               <span className="material-symbols-outlined text-[48px] text-[#974900]">groups</span>

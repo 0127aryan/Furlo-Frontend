@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { PackListSkeleton } from '@/components/skeletons'
 import { useAuthStore } from '@/store/useAuthStore'
 import { apiFetch } from '@/lib/api'
 
@@ -264,12 +265,7 @@ export default function JoinPacksPage() {
               {/* Pack list */}
               <div className="flex flex-col gap-3">
                 {loadingPacks ? (
-                  <div className="flex flex-col items-center justify-center py-8 gap-2">
-                    <span className="material-symbols-outlined animate-spin text-primary" style={{ fontSize: '32px' }}>
-                      progress_activity
-                    </span>
-                    <p className="text-[14px]" style={{ color: '#887366' }}>Fetching active communities...</p>
-                  </div>
+                  <PackListSkeleton />
                 ) : suggestedPacks.length === 0 ? (
                   <p className="text-center py-8 text-[14px]" style={{ color: '#887366' }}>No active communities found.</p>
                 ) : (
