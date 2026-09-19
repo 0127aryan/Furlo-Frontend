@@ -4,8 +4,8 @@ import type { NextRequest } from 'next/server'
 // Protected route prefixes that require authentication
 const PROTECTED_PREFIXES = ['/feed', '/onboarding', '/settings', '/notifications', '/admin', '/reports']
 
-// Auth routes that should redirect to feed if already logged in
-const AUTH_ROUTES = ['/join', '/login', '/signup']
+// Auth route that should redirect to feed if already logged in
+const AUTH_ROUTE = '/join'
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -13,8 +13,8 @@ export function middleware(request: NextRequest) {
   // Check for the session cookie set by our backend API (furlo_session)
   const sessionToken = request.cookies.get('furlo_session')?.value
 
-  // If someone directly accesses /login, redirect to /join?mode=signin or /feed
-  if (pathname === '/login') {
+  // If someone directly accesses legacy /login or /signup, redirect to /join?mode=signin or /feed
+  if (pathname === '/login' || pathname === '/signup') {
     if (sessionToken) {
       return NextResponse.redirect(new URL('/feed', request.url))
     }
@@ -24,7 +24,7 @@ export function middleware(request: NextRequest) {
   }
 
   const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))
-  const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route))
+  const isAuthRoute = pathname === AUTH_ROUTE
 
   // 1. If accessing a protected route without a valid session token, redirect to /join
   if (isProtected && !sessionToken) {
@@ -34,7 +34,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // 2. If already logged in and attempting to visit auth routes, redirect to /feed
+  // 2. If already logged in and attempting to visit root login/signup pages (excluding onboarding steps), redirect to /feed
   if (isAuthRoute && sessionToken) {
     return NextResponse.redirect(new URL('/feed', request.url))
   }
