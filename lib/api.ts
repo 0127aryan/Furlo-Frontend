@@ -44,8 +44,6 @@ export async function apiFetch<T = any>(
         toast.error('Session expired. Please sign in again... 🐾')
         const pathname = window.location.pathname
         if (
-          !pathname.startsWith('/login') &&
-          !pathname.startsWith('/signup') &&
           !pathname.startsWith('/join') &&
           pathname !== '/'
         ) {
@@ -82,8 +80,6 @@ export async function apiFetch<T = any>(
             toast.error('Session expired. Please sign in again... 🐾')
             const pathname = window.location.pathname
             if (
-              !pathname.startsWith('/login') &&
-              !pathname.startsWith('/signup') &&
               !pathname.startsWith('/join') &&
               pathname !== '/'
             ) {

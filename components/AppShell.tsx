@@ -40,9 +40,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           setUser(data.user)
           setActivePet(data.activePet)
 
-          // Auto-create pet profile if authenticated but onboarding is pending in store
+          // Auto-create pet profile if authenticated and petName was already configured in store
           const currentStore = useAuthStore.getState()
-          if (!data.activePet && currentStore.onboardingData) {
+          if (!data.activePet && currentStore.onboardingData?.petName) {
             const ob = currentStore.onboardingData
             try {
               const obRes = await apiFetch('/auth/complete-onboarding', {

@@ -71,7 +71,7 @@ export function CTASection() {
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-center scroll-reveal">
           <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md text-white text-xs sm:text-sm font-semibold flex items-center gap-2 border border-white/15">
             <span>🐾</span>
-            <span>12,000+ Pets</span>
+            <span>100+ Pets</span>
           </div>
           <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md text-white text-xs sm:text-sm font-semibold flex items-center gap-2 border border-white/15">
             <span>📍</span>
