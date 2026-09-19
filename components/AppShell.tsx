@@ -9,6 +9,7 @@ import { ToastContainer } from '@/components/ui/ToastContainer'
 import { AnnouncementBanner } from '@/components/ui/AnnouncementBanner'
 import { WebPushBootstrap } from '@/components/WebPushBootstrap'
 import { subscribePetBadges } from '@/lib/subscribePetBadges'
+import { subscribePackStatus } from '@/lib/subscribePackStatus'
 import { startNotificationRealtime } from '@/lib/subscribeNotifications'
 
 /**
@@ -78,9 +79,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [user?.id])
 
   useEffect(() => {
-    // Subscribe to real-time pet badge updates across app shell
-    const unsub = subscribePetBadges(() => {})
-    return () => unsub()
+    const unsubBadges = subscribePetBadges(() => {})
+    const unsubPacks = subscribePackStatus(() => {})
+    return () => {
+      unsubBadges()
+      unsubPacks()
+    }
   }, [])
 
   return (

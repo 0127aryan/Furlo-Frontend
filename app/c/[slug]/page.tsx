@@ -14,6 +14,7 @@ import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { applyFeedCounts, applyPostRowCounts, subscribeYardFeed } from '@/lib/subscribeYardFeed'
 import { getSupabaseClient } from '@/lib/supabaseClient'
+import { applyPackStatusToItem, subscribePackStatus } from '@/lib/subscribePackStatus'
 
 interface Community {
   id: string
@@ -114,6 +115,20 @@ export default function SingleCommunityPage() {
   useEffect(() => {
     fetchCommunityDetails()
   }, [fetchCommunityDetails])
+
+  useEffect(() => {
+    return subscribePackStatus((payload) => {
+      setCommunity((prev) => {
+        if (!prev) return prev
+        const next = applyPackStatusToItem(prev, payload)
+        if (!next || next.is_active === false) {
+          setError('Community not found')
+          return prev
+        }
+        return next
+      })
+    })
+  }, [])
 
   useEffect(() => {
     return subscribeYardFeed({

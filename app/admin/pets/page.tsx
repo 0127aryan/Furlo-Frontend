@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type MouseEvent } from 'react'
 import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
 
@@ -14,6 +14,7 @@ interface AdminPetItem {
   profile_image_url: string
   is_verified: boolean
   is_founding_pet: boolean
+  status?: 'active' | 'suspended' | 'deleted'
   created_at: string
   owner?: {
     id: string
@@ -51,7 +52,34 @@ export default function AdminDirectoryPage() {
   const [users, setUsers] = useState<AdminUserItem[]>([])
   const [userLoading, setUserLoading] = useState(true)
   const [userSearch, setUserSearch] = useState('')
-  const [userFilter, setUserFilter] = useState<'all' | 'active' | 'suspended' | 'admin'>('all')
+  const [userFilter, setUserFilter] = useState<'all' | 'active' | 'suspended' | 'admin' | 'deleted'>('all')
+  const [actionMenu, setActionMenu] = useState<
+    | { kind: 'pet'; pet: AdminPetItem; top: number; left: number }
+    | { kind: 'user'; user: AdminUserItem; top: number; left: number }
+    | null
+  >(null)
+
+  function openActionMenu(
+    e: MouseEvent<HTMLButtonElement>,
+    next: { kind: 'pet'; pet: AdminPetItem } | { kind: 'user'; user: AdminUserItem }
+  ) {
+    e.stopPropagation()
+    const id = next.kind === 'pet' ? next.pet.id : next.user.id
+    const currentId = actionMenu?.kind === 'pet' ? actionMenu.pet.id : actionMenu?.user.id
+    if (actionMenu && actionMenu.kind === next.kind && currentId === id) {
+      setActionMenu(null)
+      return
+    }
+    const rect = e.currentTarget.getBoundingClientRect()
+    const width = 188
+    const left = Math.min(Math.max(12, rect.right - width), window.innerWidth - width - 12)
+    const estimatedHeight = next.kind === 'pet' ? 148 : 96
+    const top =
+      rect.bottom + 6 + estimatedHeight > window.innerHeight
+        ? Math.max(12, rect.top - estimatedHeight - 6)
+        : rect.bottom + 6
+    setActionMenu({ ...next, top, left })
+  }
 
   // Fetch Pets (Filters out breed == 'Pet Lover' on backend)
   const fetchPets = async () => {
@@ -86,8 +114,13 @@ export default function AdminDirectoryPage() {
       toast.error('Failed to fetch pet lovers directory')
     } finally {
       setUserLoading(false)
+      setActionMenu(null)
     }
   }
+
+  useEffect(() => {
+    setActionMenu(null)
+  }, [directoryType])
 
   useEffect(() => {
     if (directoryType === 'pets') {
@@ -161,12 +194,44 @@ export default function AdminDirectoryPage() {
     }
   }
 
+  const handleTogglePetStatus = async (
+    petId: string,
+    currentStatus: string,
+    nextStatus: 'active' | 'suspended' | 'deleted'
+  ) => {
+    setPets((prev) => prev.map((p) => (p.id === petId ? { ...p, status: nextStatus } : p)))
+
+    try {
+      const res = await apiFetch<{ success: boolean; pet: AdminPetItem }>(
+        `/admin/pets/${petId}/status`,
+        {
+          method: 'POST',
+          json: { status: nextStatus },
+        }
+      )
+
+      if (res && res.success) {
+        toast.success(
+          nextStatus === 'deleted'
+            ? 'Pet profile deleted'
+            : nextStatus === 'suspended'
+              ? 'Pet profile suspended 🚫'
+              : 'Pet profile reactivated ✓'
+        )
+      }
+    } catch (err: any) {
+      setPets((prev) =>
+        prev.map((p) => (p.id === petId ? { ...p, status: currentStatus as AdminPetItem['status'] } : p))
+      )
+      toast.error(err?.message || 'Failed to update pet profile')
+    }
+  }
+
   // User Account Status / Admin Toggle handler
   const handleToggleUserStatus = async (
     userId: string,
     currentStatus: string,
-    nextStatus?: 'active' | 'suspended',
-    nextAdmin?: boolean
+    nextStatus?: 'active' | 'suspended' | 'deleted'
   ) => {
     // Optimistic update
     setUsers((prev) =>
@@ -175,7 +240,6 @@ export default function AdminDirectoryPage() {
           ? {
               ...u,
               ...(nextStatus ? { status: nextStatus } : {}),
-              ...(typeof nextAdmin === 'boolean' ? { is_admin: nextAdmin } : {}),
             }
           : u
       )
@@ -188,7 +252,6 @@ export default function AdminDirectoryPage() {
           method: 'POST',
           json: {
             status: nextStatus,
-            isAdmin: nextAdmin,
           },
         }
       )
@@ -196,14 +259,11 @@ export default function AdminDirectoryPage() {
       if (res && res.success) {
         if (nextStatus) {
           toast.success(
-            nextStatus === 'suspended'
-              ? 'User account suspended 🚫'
-              : 'User account reactivated ✓'
-          )
-        }
-        if (typeof nextAdmin === 'boolean') {
-          toast.success(
-            nextAdmin ? 'Super admin privileges granted 👑' : 'Admin privileges revoked'
+            nextStatus === 'deleted'
+              ? 'User account deleted'
+              : nextStatus === 'suspended'
+                ? 'User account suspended 🚫'
+                : 'User account reactivated ✓'
           )
         }
       }
@@ -227,7 +287,7 @@ export default function AdminDirectoryPage() {
           <p className="text-xs text-[#727974] mt-1">
             {directoryType === 'pets'
               ? 'Manage registered animal pet profiles (Dogs, Cats, Hamsters, etc.), issue Verified checkmarks, and grant Founding Pet honors.'
-              : 'Oversee registered pet lover accounts, verify admin roles, and enforce account suspensions.'}
+              : 'Oversee registered pet lover accounts and enforce account suspensions.'}
           </p>
         </div>
 
@@ -319,6 +379,7 @@ export default function AdminDirectoryPage() {
                 { id: 'active', label: 'Active' },
                 { id: 'suspended', label: 'Suspended 🚫' },
                 { id: 'admin', label: 'Admins 👑' },
+                { id: 'deleted', label: 'Deleted' },
               ].map((tab) => {
                 const isActive = userFilter === tab.id
                 return (
@@ -350,7 +411,7 @@ export default function AdminDirectoryPage() {
                   <th className="py-3.5 px-6">Badges & Verification</th>
                   <th className="py-3.5 px-6 text-center">Verified Check</th>
                   <th className="py-3.5 px-6 text-center">Founding Pet</th>
-                  <th className="py-3.5 px-6 text-right">Actions</th>
+                  <th className="py-3.5 px-6 w-14"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EDE8E1]">
@@ -424,7 +485,19 @@ export default function AdminDirectoryPage() {
                             </span>
                           )}
 
-                          {!pet.is_verified && !pet.is_founding_pet && (
+                          {pet.status === 'suspended' && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FEE2E2] text-[#DC2626] font-bold text-[11px]">
+                              <span>🚫 Suspended</span>
+                            </span>
+                          )}
+
+                          {pet.status === 'deleted' && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F5F2ED] text-[#727974] font-bold text-[11px]">
+                              <span>Deleted</span>
+                            </span>
+                          )}
+
+                          {!pet.is_verified && !pet.is_founding_pet && pet.status !== 'suspended' && pet.status !== 'deleted' && (
                             <span className="text-[11px] text-[#727974] italic">Standard</span>
                           )}
                         </div>
@@ -469,15 +542,14 @@ export default function AdminDirectoryPage() {
                       </td>
 
                       <td className="py-4 px-6 text-right">
-                        <a
-                          href={`/pet/${pet.username || pet.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-3 py-1.5 rounded-full bg-[#FAF7F2] hover:bg-[#F5F2ED] text-[#011E14] font-bold text-[11px] transition-colors inline-flex items-center gap-1"
+                        <button
+                          type="button"
+                          aria-label="Pet actions"
+                          onClick={(e) => openActionMenu(e, { kind: 'pet', pet })}
+                          className="w-9 h-9 rounded-full inline-flex items-center justify-center text-[#727974] hover:bg-[#F5F2ED] hover:text-[#011E14] transition-colors"
                         >
-                          <span>View Profile</span>
-                          <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-                        </a>
+                          <span className="material-symbols-outlined text-[20px]">more_vert</span>
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -499,7 +571,7 @@ export default function AdminDirectoryPage() {
                   <th className="py-3.5 px-6">Registered Pets</th>
                   <th className="py-3.5 px-6">Privilege Role</th>
                   <th className="py-3.5 px-6">Account Status</th>
-                  <th className="py-3.5 px-6 text-right">Admin Actions</th>
+                  <th className="py-3.5 px-6 w-14"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EDE8E1]">
@@ -596,68 +668,30 @@ export default function AdminDirectoryPage() {
 
                         {/* Account Status */}
                         <td className="py-4 px-6">
-                          {userItem.status === 'suspended' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FEE2E2] text-[#DC2626] font-bold text-[11px]">
-                              <span>🚫 Suspended</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#DCFCE7] text-[#15803D] font-bold text-[11px]">
-                              <span>✓ Active</span>
-                            </span>
-                          )}
+                        {userItem.status === 'deleted' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F5F2ED] text-[#727974] font-bold text-[11px]">
+                            <span>Deleted</span>
+                          </span>
+                        ) : userItem.status === 'suspended' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FEE2E2] text-[#DC2626] font-bold text-[11px]">
+                            <span>🚫 Suspended</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#DCFCE7] text-[#15803D] font-bold text-[11px]">
+                            <span>✓ Active</span>
+                          </span>
+                        )}
                         </td>
 
-                        {/* Actions */}
                         <td className="py-4 px-6 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {/* Toggle Admin */}
-                            <button
-                              onClick={() =>
-                                handleToggleUserStatus(
-                                  userItem.id,
-                                  userItem.status,
-                                  undefined,
-                                  !isUserAdmin
-                                )
-                              }
-                              className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all active:scale-95 border ${
-                                isUserAdmin
-                                  ? 'bg-white border-[#EDE8E1] text-[#727974] hover:bg-[#FAF7F2]'
-                                  : 'bg-[#163328] text-white hover:bg-[#011E14]'
-                              }`}
-                            >
-                              {isUserAdmin ? 'Revoke Admin' : 'Make Admin 👑'}
-                            </button>
-
-                            {/* Suspend / Activate */}
-                            {userItem.status === 'suspended' ? (
-                              <button
-                                onClick={() =>
-                                  handleToggleUserStatus(
-                                    userItem.id,
-                                    userItem.status,
-                                    'active'
-                                  )
-                                }
-                                className="px-3 py-1.5 rounded-full bg-[#DCFCE7] hover:bg-[#BBF7D0] text-[#15803D] font-bold text-[11px] transition-all active:scale-95"
-                              >
-                                Activate
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() =>
-                                  handleToggleUserStatus(
-                                    userItem.id,
-                                    userItem.status,
-                                    'suspended'
-                                  )
-                                }
-                                className="px-3 py-1.5 rounded-full bg-white hover:bg-[#FEE2E2] border border-[#FECACA] text-[#DC2626] font-bold text-[11px] transition-colors active:scale-95"
-                              >
-                                Suspend 🚫
-                              </button>
-                            )}
-                          </div>
+                          <button
+                            type="button"
+                            aria-label="Account actions"
+                            onClick={(e) => openActionMenu(e, { kind: 'user', user: userItem })}
+                            className="w-9 h-9 rounded-full inline-flex items-center justify-center text-[#727974] hover:bg-[#F5F2ED] hover:text-[#011E14] transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">more_vert</span>
+                          </button>
                         </td>
                       </tr>
                     )
@@ -668,6 +702,141 @@ export default function AdminDirectoryPage() {
           </div>
         </div>
       )}
+
+      {actionMenu ? (
+        <>
+          <button
+            type="button"
+            aria-label="Close actions menu"
+            className="fixed inset-0 z-40 cursor-default"
+            onClick={() => setActionMenu(null)}
+          />
+          <div
+            className="fixed z-50 w-48 rounded-2xl border border-[#EDE8E1] bg-white py-1.5 shadow-xl"
+            style={{ top: actionMenu.top, left: actionMenu.left }}
+          >
+            {actionMenu.kind === 'pet' ? (
+              <>
+                <a
+                  href={`/pet/${actionMenu.pet.username || actionMenu.pet.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => setActionMenu(null)}
+                  className="w-full px-3.5 py-2.5 text-left text-[12px] font-bold text-[#011E14] hover:bg-[#FAF7F2] flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                  View Profile
+                </a>
+                {actionMenu.pet.status === 'deleted' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleTogglePetStatus(actionMenu.pet.id, actionMenu.pet.status || 'deleted', 'active')
+                      setActionMenu(null)
+                    }}
+                    className="w-full px-3.5 py-2.5 text-left text-[12px] font-bold text-[#15803D] hover:bg-[#F0FDF4] flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                    Restore
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleTogglePetStatus(
+                        actionMenu.pet.id,
+                        actionMenu.pet.status || 'active',
+                        actionMenu.pet.status === 'suspended' ? 'active' : 'suspended'
+                      )
+                      setActionMenu(null)
+                    }}
+                    className="w-full px-3.5 py-2.5 text-left text-[12px] font-bold text-[#C2410C] hover:bg-[#FFF7ED] flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">
+                      {actionMenu.pet.status === 'suspended' ? 'restart_alt' : 'block'}
+                    </span>
+                    {actionMenu.pet.status === 'suspended' ? 'Activate' : 'Suspend'}
+                  </button>
+                )}
+                {actionMenu.pet.status !== 'deleted' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (
+                        !window.confirm(
+                          `Delete ${actionMenu.pet.name}? This pet profile will be hidden from Furlo.`
+                        )
+                      ) {
+                        return
+                      }
+                      handleTogglePetStatus(actionMenu.pet.id, actionMenu.pet.status || 'active', 'deleted')
+                      setActionMenu(null)
+                    }}
+                    className="w-full px-3.5 py-2.5 text-left text-[12px] font-bold text-[#DC2626] hover:bg-[#FEF2F2] flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                    Delete
+                  </button>
+                ) : null}
+              </>
+            ) : (
+              <>
+                {actionMenu.user.status === 'deleted' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleToggleUserStatus(actionMenu.user.id, actionMenu.user.status, 'active')
+                      setActionMenu(null)
+                    }}
+                    className="w-full px-3.5 py-2.5 text-left text-[12px] font-bold text-[#15803D] hover:bg-[#F0FDF4] flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                    Restore
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleToggleUserStatus(
+                        actionMenu.user.id,
+                        actionMenu.user.status,
+                        actionMenu.user.status === 'suspended' ? 'active' : 'suspended'
+                      )
+                      setActionMenu(null)
+                    }}
+                    className="w-full px-3.5 py-2.5 text-left text-[12px] font-bold text-[#C2410C] hover:bg-[#FFF7ED] flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">
+                      {actionMenu.user.status === 'suspended' ? 'restart_alt' : 'block'}
+                    </span>
+                    {actionMenu.user.status === 'suspended' ? 'Activate' : 'Suspend'}
+                  </button>
+                )}
+                {actionMenu.user.status !== 'deleted' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (
+                        !window.confirm(
+                          `Delete ${actionMenu.user.email}? Their pets will be hidden and they will not be able to sign in.`
+                        )
+                      ) {
+                        return
+                      }
+                      handleToggleUserStatus(actionMenu.user.id, actionMenu.user.status, 'deleted')
+                      setActionMenu(null)
+                    }}
+                    className="w-full px-3.5 py-2.5 text-left text-[12px] font-bold text-[#DC2626] hover:bg-[#FEF2F2] flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                    Delete
+                  </button>
+                ) : null}
+              </>
+            )}
+          </div>
+        </>
+      ) : null}
     </div>
   )
 }

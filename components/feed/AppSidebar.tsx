@@ -26,13 +26,13 @@ export function AppSidebar() {
 
   const handleLogout = async () => {
     setLoggingOut(true);
+    clearAuth();
     try {
       await unregisterWebPushToken();
       await apiFetch("/auth/logout", { method: "POST" });
     } catch (err) {
       console.warn("[AppSidebar] Logout error:", err);
     } finally {
-      clearAuth();
       router.push("/join?mode=signin");
     }
   };

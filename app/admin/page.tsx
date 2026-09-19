@@ -92,12 +92,12 @@ export default function AdminOverviewPage() {
       </div>
 
       {/* KPI Metrics Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Pet Parents */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Card 1: Total Users */}
         <div className="bg-white rounded-3xl p-6 border border-[#EDE8E1] shadow-2xs flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-[#727974] uppercase tracking-wider">
-              Pet Parents
+              Total Users
             </span>
             <div className="w-10 h-10 rounded-2xl bg-[#F5F2ED] text-[#011E14] flex items-center justify-center">
               <span className="material-symbols-outlined text-[20px]">person</span>
@@ -140,11 +140,34 @@ export default function AdminOverviewPage() {
           </div>
         </div>
 
-        {/* Card 3: Active Communities */}
+        {/* Card 3: Total Barks / Posts */}
         <div className="bg-white rounded-3xl p-6 border border-[#EDE8E1] shadow-2xs flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-[#727974] uppercase tracking-wider">
-              Packs & Communities
+              Total Barks / Posts
+            </span>
+            <div className="w-10 h-10 rounded-2xl bg-[#F5F2ED] text-[#011E14] flex items-center justify-center">
+              <span className="material-symbols-outlined text-[20px]">chat_bubble</span>
+            </div>
+          </div>
+          <div>
+            <div
+              className="text-[32px] font-bold text-[#011E14] tracking-tight"
+              style={{ fontFamily: 'Outfit, sans-serif' }}
+            >
+              {loading ? '...' : stats.totalPosts.toLocaleString()}
+            </div>
+            <div className="flex items-center gap-1 mt-1 text-xs font-bold text-[#887366]">
+              <span>Published content</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Active Communities */}
+        <div className="bg-white rounded-3xl p-6 border border-[#EDE8E1] shadow-2xs flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-[#727974] uppercase tracking-wider">
+              Active Communities
             </span>
             <div className="w-10 h-10 rounded-2xl bg-[#E4F5EB] text-[#166534] flex items-center justify-center">
               <span className="material-symbols-outlined text-[20px]">groups</span>
@@ -170,7 +193,37 @@ export default function AdminOverviewPage() {
           </div>
         </div>
 
-        {/* Card 4: Open Moderation Reports */}
+        {/* Card 5: Pending Pack Approvals */}
+        <div className="bg-white rounded-3xl p-6 border border-[#EDE8E1] shadow-2xs flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-[#727974] uppercase tracking-wider">
+              Pending Pack Approvals
+            </span>
+            <div className="w-10 h-10 rounded-2xl bg-[#FFF7ED] text-[#C2410C] flex items-center justify-center border border-[#FFEDD5]">
+              <span className="material-symbols-outlined text-[20px]">hourglass_top</span>
+            </div>
+          </div>
+          <div>
+            <div
+              className="text-[32px] font-bold text-[#011E14] tracking-tight"
+              style={{ fontFamily: 'Outfit, sans-serif' }}
+            >
+              {loading ? '...' : stats.pendingApprovals.toLocaleString()}
+            </div>
+            <div className="flex items-center gap-1 mt-1 text-xs font-bold text-[#C2410C]">
+              {stats.pendingApprovals > 0 ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-[#E8843A] animate-pulse"></span>
+                  <span>Action Required</span>
+                </>
+              ) : (
+                <span className="text-[#727974]">Queue clear</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Card 6: Open Moderation Reports */}
         <div className="bg-white rounded-3xl p-6 border border-[#EDE8E1] shadow-2xs flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-[#727974] uppercase tracking-wider">
