@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
+import { applyPackStatusToList, subscribePackStatus } from '@/lib/subscribePackStatus'
 
 interface CommunityItem {
   id: string
@@ -18,6 +19,7 @@ interface CommunityItem {
   member_count?: number
   members_count?: number
   status: 'pending' | 'approved' | 'rejected'
+  is_active?: boolean
   rejection_reason?: string
   created_at: string
   creator?: {
@@ -71,6 +73,22 @@ export default function AdminCommunitiesPage() {
     fetchCommunities()
   }, [])
 
+  useEffect(() => {
+    return subscribePackStatus((payload) => {
+      setCommunities((prev) => applyPackStatusToList(prev, payload))
+      setSelectedCommunity((prev) => {
+        if (!prev) return prev
+        if (payload.deleted && (prev.id === payload.communityId || prev.slug === payload.slug)) return null
+        if (prev.id !== payload.communityId && prev.slug !== payload.slug) return prev
+        return {
+          ...prev,
+          status: payload.status as CommunityItem['status'],
+          is_active: payload.is_active,
+        }
+      })
+    })
+  }, [])
+
   const handleApprove = async (id: string, packName: string) => {
     // 250ms row collapse animation
     setCollapsingIds((prev) => ({ ...prev, [id]: true }))
@@ -102,6 +120,45 @@ export default function AdminCommunitiesPage() {
   const handleOpenRejectModal = (id: string) => {
     setRejectingId(id)
     setRejectionReason('')
+  }
+
+  const handleSuspendCommunity = async (id: string, packName: string, currentlyActive: boolean) => {
+    const nextSuspended = currentlyActive
+    try {
+      const res = await apiFetch<{ success: boolean; community: CommunityItem }>(
+        `/admin/communities/${id}/suspend`,
+        { method: 'POST', json: { suspended: nextSuspended } }
+      )
+      if (res && res.success) {
+        toast.success(
+          nextSuspended ? `Pack "${packName}" suspended` : `Pack "${packName}" restored`
+        )
+        setCommunities((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, is_active: !nextSuspended } : c))
+        )
+        setSelectedCommunity((prev) =>
+          prev && prev.id === id ? { ...prev, is_active: !nextSuspended } : prev
+        )
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update pack visibility')
+    }
+  }
+
+  const handleDeleteCommunity = async (id: string, packName: string) => {
+    if (!window.confirm(`Permanently delete pack "${packName}"? This cannot be undone.`)) return
+    try {
+      const res = await apiFetch<{ success: boolean }>(`/admin/communities/${id}`, {
+        method: 'DELETE',
+      })
+      if (res && res.success) {
+        toast.success(`Pack "${packName}" deleted`)
+        setCommunities((prev) => prev.filter((c) => c.id !== id))
+        setSelectedCommunity((prev) => (prev && prev.id === id ? null : prev))
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete pack')
+    }
   }
 
   const handleConfirmReject = async (e: React.FormEvent) => {
@@ -330,6 +387,11 @@ export default function AdminCommunitiesPage() {
                             <span>✗ Rejected</span>
                           </span>
                         )}
+                        {comm.is_active === false && (
+                          <span className="ml-1 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#F5F2ED] text-[#727974] font-bold text-[11px]">
+                            <span>Suspended</span>
+                          </span>
+                        )}
                       </td>
 
                       <td className="py-4 px-6 text-right" onClick={(e) => e.stopPropagation()}>
@@ -370,6 +432,24 @@ export default function AdminCommunitiesPage() {
                               View Details
                             </button>
                           )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleSuspendCommunity(comm.id, comm.name, comm.is_active !== false)
+                            }}
+                            className="px-3 py-1.5 rounded-full bg-white hover:bg-[#FFEDD5] border border-[#FDE8D3] text-[#C2410C] font-bold text-[11px] transition-colors active:scale-95"
+                          >
+                            {comm.is_active === false ? 'Restore' : 'Suspend'}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteCommunity(comm.id, comm.name)
+                            }}
+                            className="px-3 py-1.5 rounded-full bg-white hover:bg-[#FEE2E2] border border-[#FECACA] text-[#DC2626] font-bold text-[11px] transition-colors active:scale-95"
+                          >
+                            Delete
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -457,6 +537,11 @@ export default function AdminCommunitiesPage() {
                   {selectedCommunity.status === 'rejected' && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FEE2E2] text-[#DC2626] font-bold text-xs">
                       <span>✗ Application Rejected</span>
+                    </span>
+                  )}
+                  {selectedCommunity.is_active === false && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F5F2ED] text-[#727974] font-bold text-xs mt-1">
+                      <span>Suspended</span>
                     </span>
                   )}
                 </div>
@@ -578,7 +663,7 @@ export default function AdminCommunitiesPage() {
             </div>
 
             {/* Modal Footer Actions */}
-            <div className="p-5 bg-[#FAF7F2] border-t border-[#EDE8E1] flex items-center justify-between gap-3 shrink-0">
+            <div className="p-5 bg-[#FAF7F2] border-t border-[#EDE8E1] flex flex-wrap items-center justify-between gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setSelectedCommunity(null)}
@@ -587,36 +672,58 @@ export default function AdminCommunitiesPage() {
                 Close Details
               </button>
 
-              {selectedCommunity.status === 'pending' && (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const id = selectedCommunity.id
-                      const name = selectedCommunity.name
-                      setSelectedCommunity(null)
-                      handleApprove(id, name)
-                    }}
-                    className="px-4 py-2 rounded-full bg-[#15803D] hover:bg-[#166534] text-white text-xs font-bold shadow-2xs transition-all active:scale-95 flex items-center gap-1.5"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">check</span>
-                    <span>Approve Pack</span>
-                  </button>
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleSuspendCommunity(
+                      selectedCommunity.id,
+                      selectedCommunity.name,
+                      selectedCommunity.is_active !== false
+                    )
+                  }
+                  className="px-4 py-2 rounded-full bg-white hover:bg-[#FFEDD5] border border-[#FDE8D3] text-[#C2410C] text-xs font-bold transition-colors"
+                >
+                  {selectedCommunity.is_active === false ? 'Restore Pack' : 'Suspend Pack'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteCommunity(selectedCommunity.id, selectedCommunity.name)}
+                  className="px-4 py-2 rounded-full bg-white hover:bg-[#FEE2E2] border border-[#FECACA] text-[#DC2626] text-xs font-bold transition-colors"
+                >
+                  Delete Pack
+                </button>
+                {selectedCommunity.status === 'pending' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const id = selectedCommunity.id
+                        const name = selectedCommunity.name
+                        setSelectedCommunity(null)
+                        handleApprove(id, name)
+                      }}
+                      className="px-4 py-2 rounded-full bg-[#15803D] hover:bg-[#166534] text-white text-xs font-bold shadow-2xs transition-all active:scale-95 flex items-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">check</span>
+                      <span>Approve Pack</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const id = selectedCommunity.id
-                      setSelectedCommunity(null)
-                      handleOpenRejectModal(id)
-                    }}
-                    className="px-4 py-2 rounded-full bg-white hover:bg-[#FEE2E2] border border-[#FECACA] text-[#DC2626] text-xs font-bold transition-colors flex items-center gap-1.5"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">close</span>
-                    <span>Reject</span>
-                  </button>
-                </div>
-              )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const id = selectedCommunity.id
+                        setSelectedCommunity(null)
+                        handleOpenRejectModal(id)
+                      }}
+                      className="px-4 py-2 rounded-full bg-white hover:bg-[#FEE2E2] border border-[#FECACA] text-[#DC2626] text-xs font-bold transition-colors flex items-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">close</span>
+                      <span>Reject</span>
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -13,8 +13,18 @@ export function middleware(request: NextRequest) {
   // Check for the session cookie set by our backend API (furlo_session)
   const sessionToken = request.cookies.get('furlo_session')?.value
 
+  // If someone directly accesses /login, redirect to /join?mode=signin or /feed
+  if (pathname === '/login') {
+    if (sessionToken) {
+      return NextResponse.redirect(new URL('/feed', request.url))
+    }
+    const joinUrl = new URL('/join', request.url)
+    joinUrl.searchParams.set('mode', 'signin')
+    return NextResponse.redirect(joinUrl)
+  }
+
   const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))
-  const isAuthRoute = AUTH_ROUTES.some((route) => pathname === route)
+  const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route))
 
   // 1. If accessing a protected route without a valid session token, redirect to /join
   if (isProtected && !sessionToken) {
@@ -24,7 +34,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // 2. If already logged in and attempting to visit login/signup, redirect to /feed
+  // 2. If already logged in and attempting to visit auth routes, redirect to /feed
   if (isAuthRoute && sessionToken) {
     return NextResponse.redirect(new URL('/feed', request.url))
   }

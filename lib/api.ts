@@ -36,18 +36,21 @@ export async function apiFetch<T = any>(
 
   if (response.status === 401) {
     if (typeof window !== 'undefined') {
+      const hadUser = Boolean(useAuthStore.getState().user)
       useAuthStore.getState().clearAuth()
-      // Skip toast for background session checks (like /auth/me) to avoid noisy prompts on landing
-      if (!path.includes('/auth/me') && !path.includes('/auth/logout')) {
-        toast.error('Session expired. Redirecting you to login page... 🐾')
+
+      // Skip toast for background session checks (like /auth/me) or if user was already logged out
+      if (hadUser && !path.includes('/auth/me') && !path.includes('/auth/logout')) {
+        toast.error('Session expired. Please sign in again... 🐾')
         const pathname = window.location.pathname
         if (
           !pathname.startsWith('/login') &&
           !pathname.startsWith('/signup') &&
+          !pathname.startsWith('/join') &&
           pathname !== '/'
         ) {
           setTimeout(() => {
-            window.location.href = '/login'
+            window.location.href = '/join?mode=signin'
           }, 600)
         }
       }
@@ -71,18 +74,23 @@ export async function apiFetch<T = any>(
     }
 
     if (errorMessage === 'Unauthorized' && response.status !== 401) {
-      if (!path.includes('/auth/me')) {
-        toast.error('Session expired. Redirecting you to login page... 🐾')
+      if (!path.includes('/auth/me') && !path.includes('/auth/logout')) {
         if (typeof window !== 'undefined') {
-          const pathname = window.location.pathname
-          if (
-            !pathname.startsWith('/login') &&
-            !pathname.startsWith('/signup') &&
-            pathname !== '/'
-          ) {
-            setTimeout(() => {
-              window.location.href = '/login'
-            }, 600)
+          const hadUser = Boolean(useAuthStore.getState().user)
+          useAuthStore.getState().clearAuth()
+          if (hadUser) {
+            toast.error('Session expired. Please sign in again... 🐾')
+            const pathname = window.location.pathname
+            if (
+              !pathname.startsWith('/login') &&
+              !pathname.startsWith('/signup') &&
+              !pathname.startsWith('/join') &&
+              pathname !== '/'
+            ) {
+              setTimeout(() => {
+                window.location.href = '/join?mode=signin'
+              }, 600)
+            }
           }
         }
       }

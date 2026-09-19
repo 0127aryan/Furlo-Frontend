@@ -3,19 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/api'
-import { createClient } from '@supabase/supabase-js'
-
-interface ActiveBanner {
-  id: string
-  text: string
-  link_url?: string
-  cta_text?: string
-  style_type: 'orange' | 'emerald' | 'amber'
-  is_active: boolean
-}
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+import { subscribeBanners, type ActiveBanner } from '@/lib/subscribeBanners'
 
 export function AnnouncementBanner() {
   const [banner, setBanner] = useState<ActiveBanner | null>(null)
@@ -23,50 +11,34 @@ export function AnnouncementBanner() {
 
   const fetchActiveBanner = async () => {
     try {
-      const res = await apiFetch<{ banner: ActiveBanner | null }>('/admin/banners/active')
-      if (res && res.banner && res.banner.is_active) {
+      const res = await apiFetch<{ banner: ActiveBanner | null }>('/admin/banners/active', {
+        skipAuth: true,
+      })
+      if (res && res.banner && res.banner.is_active !== false) {
         setBanner(res.banner)
       } else {
         setBanner(null)
       }
-    } catch (err) {
-      // Silent error fallback
+    } catch {
+      // Keep the last known banner if the public fetch fails.
     }
   }
 
   useEffect(() => {
-    fetchActiveBanner()
-
-    // 10s Fallback Polling for instant synchronization
-    const pollInterval = setInterval(() => {
-      fetchActiveBanner()
-    }, 10000)
-
-    // Supabase Realtime Subscription for instant broadcast events
-    let channel: any = null
-    if (supabaseUrl && supabaseAnonKey) {
-      try {
-        const supabase = createClient(supabaseUrl, supabaseAnonKey)
-        channel = supabase
-          .channel('global-banners')
-          .on('broadcast', { event: 'banner_update' }, (payload: any) => {
-            if (payload.payload?.banner && payload.payload.banner.is_active) {
-              setBanner(payload.payload.banner)
-            } else {
-              setBanner(null)
-            }
-          })
-          .subscribe()
-      } catch (err) {
-        console.error('[AnnouncementBanner] Realtime error:', err)
+    void fetchActiveBanner()
+    const unsub = subscribeBanners((next) => {
+      if (next) {
+        setBanner(next)
+        return
       }
-    }
-
+      void fetchActiveBanner()
+    })
+    const poll = setInterval(() => {
+      void fetchActiveBanner()
+    }, 30000)
     return () => {
-      clearInterval(pollInterval)
-      if (channel) {
-        channel.unsubscribe()
-      }
+      unsub()
+      clearInterval(poll)
     }
   }, [])
 

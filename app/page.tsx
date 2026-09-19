@@ -20,8 +20,28 @@ export default function Home() {
     }
   }, [user, router])
 
+  useEffect(() => {
+    const elements = document.querySelectorAll('.scroll-reveal')
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view')
+          }
+        })
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+    )
+
+    elements.forEach((el) => observer.observe(el))
+
+    return () => {
+      elements.forEach((el) => observer.unobserve(el))
+    }
+  }, [])
+
   return (
-    <div suppressHydrationWarning style={{ background: '#fef9f3', minHeight: '100vh' }}>
+    <div suppressHydrationWarning style={{ background: '#FAF7F2', minHeight: '100vh' }}>
       <Navbar />
       <HeroSection />
       <FeaturesSection />

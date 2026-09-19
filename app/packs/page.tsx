@@ -11,6 +11,7 @@ import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
 
 import { getSupabaseClient } from '@/lib/supabaseClient'
+import { applyPackStatusToList, subscribePackStatus } from '@/lib/subscribePackStatus'
 
 interface Community {
   id: string
@@ -25,6 +26,7 @@ interface Community {
   is_verified?: boolean
   is_joined?: boolean
   joined?: boolean
+  is_active?: boolean
   sample_members?: { id: string; name: string; username: string; profile_image_url: string }[]
 }
 
@@ -98,6 +100,13 @@ export default function PacksDiscoveryPage() {
     fetchCommunities()
     fetchMyPacks()
   }, [fetchCommunities, fetchMyPacks])
+
+  useEffect(() => {
+    return subscribePackStatus((payload) => {
+      setCommunities((prev) => applyPackStatusToList(prev, payload, { hideInactive: true }))
+      setMyPacks((prev) => applyPackStatusToList(prev, payload, { hideInactive: true }))
+    })
+  }, [])
 
   // Real-time synchronization for community_members changes across all clients & tabs
   useEffect(() => {
