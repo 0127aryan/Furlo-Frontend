@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
+import { PAGE_SIZE } from '@/lib/pagination'
+import { AdminPager } from '@/components/ui/AdminPager'
 
 interface BroadcastHistoryItem {
   id: string
@@ -22,6 +24,8 @@ export default function AdminBroadcastPage() {
 
   // History State
   const [history, setHistory] = useState<BroadcastHistoryItem[]>([])
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyTotal, setHistoryTotal] = useState(0)
   const [loadingHistory, setLoadingHistory] = useState(true)
 
   // Modal & Loading State
@@ -31,11 +35,12 @@ export default function AdminBroadcastPage() {
   const fetchHistory = async () => {
     setLoadingHistory(true)
     try {
-      const res = await apiFetch<{ history: BroadcastHistoryItem[] }>(
-        '/admin/broadcast/history'
+      const res = await apiFetch<{ history: BroadcastHistoryItem[]; totalCount?: number }>(
+        `/admin/broadcast/history?page=${historyPage}&limit=${PAGE_SIZE}`
       )
       if (res && res.history) {
         setHistory(res.history)
+        setHistoryTotal(res.totalCount || 0)
       }
     } catch (err) {
       console.error('[AdminBroadcast] History fetch error:', err)
@@ -46,7 +51,7 @@ export default function AdminBroadcastPage() {
 
   useEffect(() => {
     fetchHistory()
-  }, [])
+  }, [historyPage])
 
   const handleOpenConfirm = (e: React.FormEvent) => {
     e.preventDefault()
@@ -281,6 +286,9 @@ export default function AdminBroadcastPage() {
               </div>
             ))
           )}
+          <div className="px-4 pb-4">
+            <AdminPager page={historyPage} totalCount={historyTotal} onPage={setHistoryPage} />
+          </div>
         </div>
       </section>
 

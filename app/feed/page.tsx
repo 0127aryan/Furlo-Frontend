@@ -13,6 +13,7 @@ import { apiFetch } from "@/lib/api";
 import { startFollowRealtime } from "@/lib/subscribeFollowEvents";
 import { applyFeedCounts, applyPostRowCounts, subscribeYardFeed } from "@/lib/subscribeYardFeed";
 import { subscribePetBadges } from "@/lib/subscribePetBadges";
+import { appendUniqueById, PAGE_SIZE } from "@/lib/pagination";
 import { getPetSpecies, getPostVerb, getPostVerbPlural } from "@/lib/petVerbMap";
 
 export default function FeedPage() {
@@ -29,24 +30,29 @@ export default function FeedPage() {
   const [communities, setCommunities] = useState<
     { id: string; name: string }[]
   >([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const pageRef = useRef(1);
+  const hasMoreRef = useRef(true);
+  const loadingMoreRef = useRef(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     startFollowRealtime();
-    // Fetch communities for composer dropdown
     apiFetch("/auth/communities")
       .then((data) => {
         if (!cancelled && data && Array.isArray(data)) setCommunities(data);
       })
       .catch(() => {});
 
-    // Function to load feed dynamically with optional spinner control
-    const petQuery = activePet?.id ? `?petId=${activePet.id}` : "";
+    const petQuery = activePet?.id ? `&petId=${activePet.id}` : "";
     setLoading(true);
-    apiFetch(`/posts/feed${petQuery}`)
+    pageRef.current = 1;
+    apiFetch(`/posts/feed?page=1&limit=${PAGE_SIZE}${petQuery}`)
       .then((data) => {
         if (!cancelled && data && Array.isArray(data.posts)) {
           setPosts(data.posts);
+          hasMoreRef.current = Boolean(data.hasMore);
         }
       })
       .catch((err) => {
@@ -60,6 +66,32 @@ export default function FeedPage() {
       cancelled = true;
     };
   }, [activePet?.id]);
+
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries[0]?.isIntersecting || loadingMoreRef.current || !hasMoreRef.current) return;
+      loadingMoreRef.current = true;
+      setLoadingMore(true);
+      const nextPage = pageRef.current + 1;
+      const petQuery = petIdRef.current ? `&petId=${petIdRef.current}` : "";
+      apiFetch(`/posts/feed?page=${nextPage}&limit=${PAGE_SIZE}${petQuery}`)
+        .then((data) => {
+          if (Array.isArray(data?.posts)) {
+            setPosts((prev) => appendUniqueById(prev, data.posts));
+            pageRef.current = nextPage;
+            hasMoreRef.current = Boolean(data.hasMore);
+          }
+        })
+        .finally(() => {
+          loadingMoreRef.current = false;
+          setLoadingMore(false);
+        });
+    }, { rootMargin: "200px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [loading, posts.length]);
 
   useEffect(() => {
     const unsubFeed = subscribeYardFeed({
@@ -261,6 +293,10 @@ export default function FeedPage() {
                 }}
               />
             ))}
+            <div ref={sentinelRef} className="h-8" />
+            {loadingMore ? (
+              <p className="text-center text-[13px] text-[#887366] py-2">Loading more posts…</p>
+            ) : null}
           </div>
         )}
       </main>

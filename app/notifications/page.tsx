@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { NotificationListSkeleton } from '@/components/skeletons'
 import { AppSidebar } from '@/components/feed/AppSidebar'
@@ -10,6 +10,7 @@ import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { notificationMatchesFilter } from '@/lib/notificationFilters'
 import { subscribeRealtimeNotifications, subscribeRevokeNotifications } from '@/lib/subscribeNotifications'
+import { appendUniqueById, PAGE_SIZE } from '@/lib/pagination'
 
 interface PetActor {
   id: string
@@ -42,38 +43,67 @@ export default function NotificationsCenterPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'treats' | 'comments' | 'followers' | 'qa'>('all')
   const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({})
+  const [loadingMore, setLoadingMore] = useState(false)
+  const pageRef = useRef(1)
+  const hasMoreRef = useRef(true)
+  const loadingMoreRef = useRef(false)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
-  const fetchNotifications = useCallback(async (isInitial = false) => {
+  const fetchNotifications = useCallback(async (isInitial = false, reset = true) => {
+    if (!reset && (loadingMoreRef.current || !hasMoreRef.current)) return
     if (isInitial) setLoading(true)
+    if (!reset) {
+      loadingMoreRef.current = true
+      setLoadingMore(true)
+    }
+    const nextPage = reset ? 1 : pageRef.current + 1
     try {
       const res = await apiFetch<{
         notifications: NotificationItem[]
         unreadCount: number
-      }>(`/notifications?category=${filter}`)
+        totalCount?: number
+        page?: number
+        limit?: number
+      }>(`/notifications?category=${filter}&page=${nextPage}&limit=${PAGE_SIZE}`)
 
       if (res && Array.isArray(res.notifications)) {
-        setNotifications(res.notifications)
+        setNotifications((prev) => (reset ? res.notifications : appendUniqueById(prev, res.notifications)))
         setUnreadCount(res.unreadCount || 0)
-      } else {
+        pageRef.current = nextPage
+        hasMoreRef.current = nextPage * PAGE_SIZE < (res.totalCount || 0)
+      } else if (reset) {
         setNotifications([])
         setUnreadCount(0)
       }
     } catch {
-      setNotifications([])
-      setUnreadCount(0)
+      if (reset) {
+        setNotifications([])
+        setUnreadCount(0)
+      }
     } finally {
       if (isInitial) setLoading(false)
+      loadingMoreRef.current = false
+      setLoadingMore(false)
     }
   }, [filter])
 
-  // 1. Initial fetch & 3s Background Polling for instant updates without manual refresh
   useEffect(() => {
-    fetchNotifications(true)
+    void fetchNotifications(true, true)
     const pollInterval = setInterval(() => {
-      fetchNotifications(false)
+      if (pageRef.current === 1) void fetchNotifications(false, true)
     }, 3000)
     return () => clearInterval(pollInterval)
   }, [fetchNotifications])
+
+  useEffect(() => {
+    const node = sentinelRef.current
+    if (!node) return
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) void fetchNotifications(false, false)
+    }, { rootMargin: '200px' })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [fetchNotifications, notifications.length])
 
   // 2. Realtime Broadcast & Revoke Subscriptions
   useEffect(() => {
@@ -332,6 +362,8 @@ export default function NotificationsCenterPage() {
                   </div>
                 </section>
               )}
+              <div ref={sentinelRef} />
+              {loadingMore ? <p className="text-center text-[13px] text-[#887366] py-3">Loading more…</p> : null}
             </div>
           )}
         </main>

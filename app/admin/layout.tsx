@@ -22,22 +22,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const refreshStats = async () => {
     try {
-      const [statsRes, reportsRes] = await Promise.all([
-        apiFetch<{ stats: { pendingApprovals: number; openReports: number } }>('/admin/stats').catch(() => null),
-        apiFetch<{ reports: Array<{ status: string }> }>('/admin/reports').catch(() => null),
-      ])
-
-      const openFromReports = reportsRes?.reports
-        ? reportsRes.reports.filter((r) => r.status === 'open').length
-        : undefined
-
-      const openReports = openFromReports !== undefined
-        ? openFromReports
-        : (statsRes?.stats?.openReports || 0)
-
-      const pendingApprovals = statsRes?.stats?.pendingApprovals || 0
-
-      setStats({ pendingApprovals, openReports })
+      const statsRes = await apiFetch<{ stats: { pendingApprovals: number; openReports: number } }>('/admin/stats').catch(() => null)
+      setStats({
+        pendingApprovals: statsRes?.stats?.pendingApprovals || 0,
+        openReports: statsRes?.stats?.openReports || 0,
+      })
     } catch (err) {
       console.error('[AdminLayout] Failed to refresh stats:', err)
     }

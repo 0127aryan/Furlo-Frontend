@@ -80,6 +80,7 @@ export function CreatePostModal({
 
   const handleSubmit = async () => {
     if (!activePet?.id) return
+    if (!caption.trim() && mediaFiles.length === 0) return
     setIsSubmitting(true)
 
     try {

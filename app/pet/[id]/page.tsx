@@ -17,6 +17,7 @@ import { startFollowRealtime } from '@/lib/subscribeFollowEvents'
 import { applyFeedCounts, applyPostRowCounts, subscribeYardFeed } from '@/lib/subscribeYardFeed'
 import { subscribePetBadges } from '@/lib/subscribePetBadges'
 import { apiFetch } from '@/lib/api'
+import { appendUniqueById, PAGE_SIZE } from '@/lib/pagination'
 import { toast } from '@/lib/toast'
 import { getPetSpecies, getPostVerb, getPostVerbPlural } from '@/lib/petVerbMap'
 
@@ -55,6 +56,10 @@ export default function PetProfilePage() {
   const liveCounts = usePetSocialStore((s) => s.counts[pet?.id || ''] ?? s.counts[petId])
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const postPageRef = useRef(1)
+  const postHasMoreRef = useRef(true)
+  const loadingMoreRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'barks' | 'treats' | 'packs' | 'info'>('barks')
   const [following, setFollowing] = useState(false)
@@ -273,7 +278,15 @@ export default function PetProfilePage() {
       .then((data) => {
         if (data && data.pet) {
           setPet(data.pet)
-          setPosts(data.posts || [])
+          apiFetch<{ posts?: Post[]; hasMore?: boolean }>(
+            `/posts/feed?authorPetId=${data.pet.id}&page=1&limit=${PAGE_SIZE}${activePet?.id ? `&petId=${activePet.id}` : ''}`,
+          )
+            .then((feed) => {
+              setPosts(feed.posts || data.posts || [])
+              postPageRef.current = 1
+              postHasMoreRef.current = Boolean(feed.hasMore)
+            })
+            .catch(() => setPosts(data.posts || []))
 
           // Canonicalize URL to pet username if current path contains UUID or differs from username
           if (
@@ -285,17 +298,11 @@ export default function PetProfilePage() {
             window.history.replaceState(null, '', `/pet/${data.pet.username}`)
           }
 
-          const barks = data.posts ? data.posts.length : 0
-          const treats = (data.posts || []).reduce(
-            (sum, p) => sum + (p.like_count || 0),
-            0,
-          )
-
           const nextStats = {
-            barksCount: data.stats?.barksCount ?? barks,
+            barksCount: data.stats?.barksCount ?? 0,
             packMembersCount: data.stats?.packMembersCount ?? 0,
             followingCount: data.stats?.followingCount ?? 0,
-            treatsCount: data.stats?.treatsCount ?? treats,
+            treatsCount: data.stats?.treatsCount ?? 0,
           }
           setDbStats(nextStats)
           setSocialCounts(data.pet.id, {
@@ -721,6 +728,32 @@ export default function PetProfilePage() {
                       }}
                     />
                   ))}
+                  {postHasMoreRef.current ? (
+                    <button
+                      type="button"
+                      disabled={loadingMore}
+                      onClick={async () => {
+                        if (!pet?.id || loadingMoreRef.current || !postHasMoreRef.current) return
+                        loadingMoreRef.current = true
+                        setLoadingMore(true)
+                        const nextPage = postPageRef.current + 1
+                        try {
+                          const feed = await apiFetch<{ posts?: Post[]; hasMore?: boolean }>(
+                            `/posts/feed?authorPetId=${pet.id}&page=${nextPage}&limit=${PAGE_SIZE}${activePet?.id ? `&petId=${activePet.id}` : ''}`,
+                          )
+                          setPosts((prev) => appendUniqueById(prev, feed.posts || []))
+                          postPageRef.current = nextPage
+                          postHasMoreRef.current = Boolean(feed.hasMore)
+                        } finally {
+                          loadingMoreRef.current = false
+                          setLoadingMore(false)
+                        }
+                      }}
+                      className="mx-auto px-4 py-2 rounded-full border border-[#EDE8E1] text-[13px] text-[#163328]"
+                    >
+                      {loadingMore ? 'Loading…' : 'Load more'}
+                    </button>
+                  ) : null}
                 </div>
               )}
             </div>

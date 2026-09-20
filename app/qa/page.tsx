@@ -12,6 +12,7 @@ import { RightSidebar } from '@/components/feed/RightSidebar'
 import { useAuthStore } from '@/store/useAuthStore'
 import { apiFetch } from '@/lib/api'
 import { applyFeedCounts, applyPostRowCounts, subscribeYardFeed } from '@/lib/subscribeYardFeed'
+import { appendUniqueById, PAGE_SIZE } from '@/lib/pagination'
 
 interface QuestionPost {
   id: string
@@ -87,9 +88,20 @@ export default function QAHubPage() {
 
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [reportingPostId, setReportingPostId] = useState<string | null>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const pageRef = useRef(1)
+  const hasMoreRef = useRef(true)
+  const loadingMoreRef = useRef(false)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
-  const fetchQAData = useCallback(async () => {
-    setLoading(true)
+  const fetchQAData = useCallback(async (reset = true) => {
+    if (!reset && (loadingMoreRef.current || !hasMoreRef.current)) return
+    if (reset) setLoading(true)
+    else {
+      loadingMoreRef.current = true
+      setLoadingMore(true)
+    }
+    const nextPage = reset ? 1 : pageRef.current + 1
     try {
       const petQuery = activePet?.id ? `&petId=${activePet.id}` : ''
       const isUnanswered = activeCategory === 'Unanswered'
@@ -97,17 +109,21 @@ export default function QAHubPage() {
       const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
       const unansweredParam = isUnanswered ? '&unanswered=true' : ''
 
-      const data = await apiFetch<{ questions: QuestionPost[] }>(
-        `/posts/qa/questions?v=1${catParam}${searchParam}${unansweredParam}${petQuery}`
+      const data = await apiFetch<{ questions: QuestionPost[]; hasMore?: boolean }>(
+        `/posts/qa/questions?v=1&page=${nextPage}&limit=${PAGE_SIZE}${catParam}${searchParam}${unansweredParam}${petQuery}`
       )
 
       if (data && data.questions) {
-        setQuestions(data.questions)
+        setQuestions((prev) => (reset ? data.questions : appendUniqueById(prev, data.questions)))
+        pageRef.current = nextPage
+        hasMoreRef.current = Boolean(data.hasMore)
       }
     } catch (err) {
       console.error('[QAHub] Error fetching Q&A questions:', err)
     } finally {
-      setLoading(false)
+      if (reset) setLoading(false)
+      loadingMoreRef.current = false
+      setLoadingMore(false)
     }
   }, [activeCategory, searchQuery, activePet?.id])
 
@@ -125,8 +141,18 @@ export default function QAHubPage() {
   }, [])
 
   useEffect(() => {
-    fetchQAData()
+    void fetchQAData(true)
   }, [fetchQAData])
+
+  useEffect(() => {
+    const node = sentinelRef.current
+    if (!node) return
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) void fetchQAData(false)
+    }, { rootMargin: '200px' })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [fetchQAData, questions.length])
 
   useEffect(() => {
     fetchSidebars()
@@ -240,6 +266,8 @@ export default function QAHubPage() {
                 />
               </div>
             ))}
+            <div ref={sentinelRef} />
+            {loadingMore ? <p className="text-center text-[13px] text-[#887366]">Loading more questions…</p> : null}
           </div>
         )}
       </main>
