@@ -3,6 +3,8 @@
 import { useState, useEffect, type MouseEvent } from 'react'
 import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
+import { PAGE_SIZE } from '@/lib/pagination'
+import { AdminPager } from '@/components/ui/AdminPager'
 
 interface AdminPetItem {
   id: string
@@ -47,12 +49,16 @@ export default function AdminDirectoryPage() {
   const [petLoading, setPetLoading] = useState(true)
   const [petSearch, setPetSearch] = useState('')
   const [petFilter, setPetFilter] = useState<'all' | 'verified' | 'founding'>('all')
+  const [petPage, setPetPage] = useState(1)
+  const [petTotal, setPetTotal] = useState(0)
 
   // User Directory state
   const [users, setUsers] = useState<AdminUserItem[]>([])
   const [userLoading, setUserLoading] = useState(true)
   const [userSearch, setUserSearch] = useState('')
   const [userFilter, setUserFilter] = useState<'all' | 'active' | 'suspended' | 'admin' | 'deleted'>('all')
+  const [userPage, setUserPage] = useState(1)
+  const [userTotal, setUserTotal] = useState(0)
   const [actionMenu, setActionMenu] = useState<
     | { kind: 'pet'; pet: AdminPetItem; top: number; left: number }
     | { kind: 'user'; user: AdminUserItem; top: number; left: number }
@@ -85,11 +91,12 @@ export default function AdminDirectoryPage() {
   const fetchPets = async () => {
     setPetLoading(true)
     try {
-      const res = await apiFetch<{ pets: AdminPetItem[] }>(
-        `/admin/pets?search=${encodeURIComponent(petSearch)}&filter=${petFilter}`
+      const res = await apiFetch<{ pets: AdminPetItem[]; totalCount?: number }>(
+        `/admin/pets?search=${encodeURIComponent(petSearch)}&filter=${petFilter}&page=${petPage}&limit=${PAGE_SIZE}`
       )
       if (res && res.pets) {
         setPets(res.pets)
+        setPetTotal(res.totalCount || 0)
       }
     } catch (err) {
       console.error('[AdminPets] Fetch error:', err)
@@ -103,11 +110,12 @@ export default function AdminDirectoryPage() {
   const fetchUsers = async () => {
     setUserLoading(true)
     try {
-      const res = await apiFetch<{ users: AdminUserItem[] }>(
-        `/admin/users?search=${encodeURIComponent(userSearch)}&filter=${userFilter}`
+      const res = await apiFetch<{ users: AdminUserItem[]; totalCount?: number }>(
+        `/admin/users?search=${encodeURIComponent(userSearch)}&filter=${userFilter}&page=${userPage}&limit=${PAGE_SIZE}`
       )
       if (res && res.users) {
         setUsers(res.users)
+        setUserTotal(res.totalCount || 0)
       }
     } catch (err) {
       console.error('[AdminUsers] Fetch error:', err)
@@ -123,6 +131,14 @@ export default function AdminDirectoryPage() {
   }, [directoryType])
 
   useEffect(() => {
+    setPetPage(1)
+  }, [petSearch, petFilter])
+
+  useEffect(() => {
+    setUserPage(1)
+  }, [userSearch, userFilter])
+
+  useEffect(() => {
     if (directoryType === 'pets') {
       const timer = setTimeout(() => fetchPets(), 200)
       return () => clearTimeout(timer)
@@ -130,7 +146,7 @@ export default function AdminDirectoryPage() {
       const timer = setTimeout(() => fetchUsers(), 200)
       return () => clearTimeout(timer)
     }
-  }, [directoryType, petSearch, petFilter, userSearch, userFilter])
+  }, [directoryType, petSearch, petFilter, userSearch, userFilter, petPage, userPage])
 
   // Pet Badge Toggle handler
   const handleToggleBadge = async (
@@ -557,6 +573,9 @@ export default function AdminDirectoryPage() {
               </tbody>
             </table>
           </div>
+          <div className="px-4 pb-4">
+            <AdminPager page={petPage} totalCount={petTotal} onPage={setPetPage} />
+          </div>
         </div>
       )}
 
@@ -699,6 +718,9 @@ export default function AdminDirectoryPage() {
                 )}
               </tbody>
             </table>
+          </div>
+          <div className="px-4 pb-4">
+            <AdminPager page={userPage} totalCount={userTotal} onPage={setUserPage} />
           </div>
         </div>
       )}

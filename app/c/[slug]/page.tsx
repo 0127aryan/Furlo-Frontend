@@ -15,6 +15,7 @@ import { toast } from '@/lib/toast'
 import { applyFeedCounts, applyPostRowCounts, subscribeYardFeed } from '@/lib/subscribeYardFeed'
 import { getSupabaseClient } from '@/lib/supabaseClient'
 import { applyPackStatusToItem, subscribePackStatus } from '@/lib/subscribePackStatus'
+import { appendUniqueById, PAGE_SIZE } from '@/lib/pagination'
 
 interface Community {
   id: string
@@ -79,6 +80,14 @@ export default function SingleCommunityPage() {
   const [activeTab, setActiveTab] = useState<'feed' | 'members' | 'about'>('feed')
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [reportingPostId, setReportingPostId] = useState<string | null>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [memberTotal, setMemberTotal] = useState(0)
+  const postPageRef = useRef(1)
+  const memberPageRef = useRef(1)
+  const postHasMoreRef = useRef(true)
+  const memberHasMoreRef = useRef(true)
+  const loadingMoreRef = useRef(false)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   const fetchCommunityDetails = useCallback(async () => {
     if (!slug) return
@@ -91,6 +100,7 @@ export default function SingleCommunityPage() {
         joined?: boolean
         isJoined?: boolean
         members: MemberPet[]
+        memberCount?: number
         posts: Post[]
         announcement?: { title: string; content: string }
       }>(`/communities/${slug}${petQuery}`)
@@ -99,8 +109,16 @@ export default function SingleCommunityPage() {
         setCommunity(data.community)
         setIsJoined(data.joined ?? data.isJoined ?? data.community.is_joined ?? false)
         setMembers(data.members || [])
-        setPosts(data.posts || [])
+        setMemberTotal(data.memberCount ?? data.community.member_count ?? (data.members || []).length)
+        memberPageRef.current = 1
+        memberHasMoreRef.current = (data.members || []).length < (data.memberCount ?? data.community.member_count ?? 0)
         if (data.announcement) setAnnouncement(data.announcement)
+        const feed = await apiFetch<{ posts?: Post[]; hasMore?: boolean; totalCount?: number }>(
+          `/posts/feed?communityId=${data.community.id}&page=1&limit=${PAGE_SIZE}${activePet?.id ? `&petId=${activePet.id}` : ''}`,
+        )
+        setPosts(feed.posts || [])
+        postPageRef.current = 1
+        postHasMoreRef.current = Boolean(feed.hasMore)
       } else {
         setError('Community not found')
       }
@@ -112,9 +130,59 @@ export default function SingleCommunityPage() {
     }
   }, [slug, activePet?.id])
 
+  const loadMore = useCallback(async () => {
+    if (loadingMoreRef.current) return
+    if (activeTab === 'feed') {
+      if (!community?.id || !postHasMoreRef.current) return
+      loadingMoreRef.current = true
+      setLoadingMore(true)
+      const nextPage = postPageRef.current + 1
+      try {
+        const feed = await apiFetch<{ posts?: Post[]; hasMore?: boolean }>(
+          `/posts/feed?communityId=${community.id}&page=${nextPage}&limit=${PAGE_SIZE}${activePet?.id ? `&petId=${activePet.id}` : ''}`,
+        )
+        setPosts((prev) => appendUniqueById(prev, feed.posts || []))
+        postPageRef.current = nextPage
+        postHasMoreRef.current = Boolean(feed.hasMore)
+      } finally {
+        loadingMoreRef.current = false
+        setLoadingMore(false)
+      }
+      return
+    }
+    if (activeTab === 'members') {
+      if (!slug || !memberHasMoreRef.current) return
+      loadingMoreRef.current = true
+      setLoadingMore(true)
+      const nextPage = memberPageRef.current + 1
+      try {
+        const data = await apiFetch<{ members?: MemberPet[]; hasMore?: boolean; totalCount?: number }>(
+          `/communities/${slug}/members?page=${nextPage}&limit=${PAGE_SIZE}`,
+        )
+        setMembers((prev) => appendUniqueById(prev, data.members || []))
+        memberPageRef.current = nextPage
+        memberHasMoreRef.current = Boolean(data.hasMore)
+        if (typeof data.totalCount === 'number') setMemberTotal(data.totalCount)
+      } finally {
+        loadingMoreRef.current = false
+        setLoadingMore(false)
+      }
+    }
+  }, [activeTab, community?.id, slug, activePet?.id])
+
   useEffect(() => {
     fetchCommunityDetails()
   }, [fetchCommunityDetails])
+
+  useEffect(() => {
+    const node = sentinelRef.current
+    if (!node) return
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) void loadMore()
+    }, { rootMargin: '200px' })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [loadMore, posts.length, members.length, activeTab])
 
   useEffect(() => {
     return subscribePackStatus((payload) => {
@@ -352,7 +420,7 @@ export default function SingleCommunityPage() {
                   activeTab === 'feed' ? 'text-[#011E14]' : 'text-[#727974] hover:text-[#011E14]'
                 }`}
               >
-                Feed ({posts.length})
+                Feed ({posts.length}{postHasMoreRef.current ? '+' : ''})
                 {activeTab === 'feed' && (
                   <span className="absolute bottom-0 left-0 right-0 h-1 bg-[#E8843A] rounded-t-full" />
                 )}
@@ -445,6 +513,10 @@ export default function SingleCommunityPage() {
                     />
                   ))
                 )}
+                <div ref={activeTab === 'feed' ? sentinelRef : undefined} />
+                {loadingMore && activeTab === 'feed' ? (
+                  <p className="text-center text-[13px] text-[#887366]">Loading more posts…</p>
+                ) : null}
               </div>
             ) : activeTab === 'members' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -486,6 +558,10 @@ export default function SingleCommunityPage() {
                     </Link>
                   ))
                 )}
+                <div ref={activeTab === 'members' ? sentinelRef : undefined} className="col-span-2" />
+                {loadingMore && activeTab === 'members' ? (
+                  <p className="col-span-2 text-center text-[13px] text-[#887366]">Loading more members…</p>
+                ) : null}
               </div>
             ) : (
               /* About & Rules Tab */

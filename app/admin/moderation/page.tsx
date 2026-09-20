@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
+import { PAGE_SIZE } from '@/lib/pagination'
+import { AdminPager } from '@/components/ui/AdminPager'
 import { subscribeModerationQueue } from '@/lib/subscribeModerationQueue'
 
 interface ReportItem {
@@ -48,15 +50,19 @@ export default function AdminModerationPage() {
   const [reports, setReports] = useState<ReportItem[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'open' | 'resolved' | 'all'>('open')
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
   const [selectedReport, setSelectedReport] = useState<ReportItem | null>(null)
 
   const fetchReports = async () => {
     setLoading(true)
     try {
-      const res = await apiFetch<{ reports: ReportItem[] }>('/admin/reports')
+      const res = await apiFetch<{ reports: ReportItem[]; totalCount?: number }>(
+        `/admin/reports?status=${filter}&page=${page}&limit=${PAGE_SIZE}`,
+      )
       if (res && res.reports) {
         setReports(res.reports)
-        // Update selected report if open in modal
+        setTotalCount(res.totalCount || 0)
         if (selectedReport) {
           const updated = res.reports.find((r) => r.id === selectedReport.id)
           if (updated) setSelectedReport(updated)
@@ -93,7 +99,11 @@ export default function AdminModerationPage() {
     })
 
     return () => unsub()
-  }, [])
+  }, [filter, page])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filter])
 
   const handleAction = async (
     reportId: string,
@@ -134,10 +144,7 @@ export default function AdminModerationPage() {
     }
   }
 
-  const filteredList = reports.filter((r) => {
-    if (filter === 'all') return true
-    return r.status === filter
-  })
+  const filteredList = reports
 
   return (
     <div className="space-y-6">
@@ -290,6 +297,9 @@ export default function AdminModerationPage() {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="px-4 pb-4">
+          <AdminPager page={page} totalCount={totalCount} onPage={setPage} />
         </div>
       </div>
 

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { applyPackStatusToList, subscribePackStatus } from '@/lib/subscribePackStatus'
+import { PAGE_SIZE } from '@/lib/pagination'
+import { AdminPager } from '@/components/ui/AdminPager'
 
 interface CommunityItem {
   id: string
@@ -42,6 +44,8 @@ export default function AdminCommunitiesPage() {
   const [communities, setCommunities] = useState<CommunityItem[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending')
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
 
   // Selected Community Details Popup Modal
   const [selectedCommunity, setSelectedCommunity] = useState<CommunityItem | null>(null)
@@ -57,9 +61,12 @@ export default function AdminCommunitiesPage() {
   const fetchCommunities = async () => {
     setLoading(true)
     try {
-      const res = await apiFetch<{ communities: CommunityItem[] }>('/admin/communities/pending')
+      const res = await apiFetch<{ communities: CommunityItem[]; totalCount?: number }>(
+        `/admin/communities/pending?status=${filter}&page=${page}&limit=${PAGE_SIZE}`,
+      )
       if (res && res.communities) {
         setCommunities(res.communities)
+        setTotalCount(res.totalCount || 0)
       }
     } catch (err) {
       console.error('[AdminCommunities] Fetch error:', err)
@@ -71,7 +78,11 @@ export default function AdminCommunitiesPage() {
 
   useEffect(() => {
     fetchCommunities()
-  }, [])
+  }, [filter, page])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filter])
 
   useEffect(() => {
     return subscribePackStatus((payload) => {
@@ -203,10 +214,7 @@ export default function AdminCommunitiesPage() {
     }
   }
 
-  const filteredList = communities.filter((c) => {
-    if (filter === 'all') return true
-    return c.status === filter
-  })
+  const filteredList = communities
 
   return (
     <div className="space-y-6">
@@ -458,6 +466,9 @@ export default function AdminCommunitiesPage() {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="px-4 pb-4">
+          <AdminPager page={page} totalCount={totalCount} onPage={setPage} />
         </div>
       </div>
 

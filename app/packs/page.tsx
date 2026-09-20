@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { PackListSkeleton } from '@/components/skeletons'
 import { AppSidebar } from '@/components/feed/AppSidebar'
@@ -12,6 +12,7 @@ import { toast } from '@/lib/toast'
 
 import { getSupabaseClient } from '@/lib/supabaseClient'
 import { applyPackStatusToList, subscribePackStatus } from '@/lib/subscribePackStatus'
+import { appendUniqueById, PAGE_SIZE } from '@/lib/pagination'
 
 interface Community {
   id: string
@@ -46,7 +47,12 @@ export default function PacksDiscoveryPage() {
   const [communities, setCommunities] = useState<Community[]>([])
   const [myPacks, setMyPacks] = useState<Community[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const pageRef = useRef(1)
+  const hasMoreRef = useRef(true)
+  const loadingMoreRef = useRef(false)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   const [categories, setCategories] = useState<string[]>(['All Packs'])
 
@@ -62,21 +68,32 @@ export default function PacksDiscoveryPage() {
     }
   }, [])
 
-  const fetchCommunities = useCallback(async () => {
-    setLoading(true)
+  const fetchCommunities = useCallback(async (reset = true) => {
+    if (!reset && (loadingMoreRef.current || !hasMoreRef.current)) return
+    if (reset) setLoading(true)
+    else {
+      loadingMoreRef.current = true
+      setLoadingMore(true)
+    }
+    const nextPage = reset ? 1 : pageRef.current + 1
     try {
       const petQuery = activePet?.id ? `&petId=${activePet.id}` : ''
       const catQuery = activeCategory !== 'All Packs' ? `&category=${encodeURIComponent(activeCategory)}` : ''
       const searchParam = searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''
 
-      const data = await apiFetch<Community[]>(`/communities?${catQuery}${searchParam}${petQuery}`)
-      if (data) {
-        setCommunities(data)
-      }
+      const data = await apiFetch<{ communities?: Community[]; hasMore?: boolean }>(
+        `/communities?page=${nextPage}&limit=${PAGE_SIZE}${catQuery}${searchParam}${petQuery}`,
+      )
+      const list = Array.isArray(data) ? data : data?.communities || []
+      setCommunities((prev) => (reset ? list : appendUniqueById(prev, list)))
+      pageRef.current = nextPage
+      hasMoreRef.current = Boolean((data as { hasMore?: boolean })?.hasMore)
     } catch (err) {
       console.error('[Packs] Fetch error:', err)
     } finally {
-      setLoading(false)
+      if (reset) setLoading(false)
+      loadingMoreRef.current = false
+      setLoadingMore(false)
     }
   }, [activeCategory, searchQuery, activePet?.id])
 
@@ -97,9 +114,19 @@ export default function PacksDiscoveryPage() {
   }, [fetchCategories])
 
   useEffect(() => {
-    fetchCommunities()
+    fetchCommunities(true)
     fetchMyPacks()
   }, [fetchCommunities, fetchMyPacks])
+
+  useEffect(() => {
+    const node = sentinelRef.current
+    if (!node) return
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) void fetchCommunities(false)
+    }, { rootMargin: '240px' })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [fetchCommunities, communities.length])
 
   useEffect(() => {
     return subscribePackStatus((payload) => {
@@ -496,6 +523,10 @@ export default function PacksDiscoveryPage() {
                   </Link>
                 )
               })}
+              <div ref={sentinelRef} className="col-span-full h-8" />
+              {loadingMore ? (
+                <p className="col-span-full text-center text-[13px] text-[#887366]">Loading more packs…</p>
+              ) : null}
             </div>
           )}
         </section>

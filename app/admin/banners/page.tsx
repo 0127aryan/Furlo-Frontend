@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
+import { PAGE_SIZE } from '@/lib/pagination'
+import { AdminPager } from '@/components/ui/AdminPager'
 
 interface BannerItem {
   id: string
@@ -25,13 +27,18 @@ export default function AdminBannersPage() {
   const [styleType, setStyleType] = useState<'orange' | 'emerald' | 'amber'>('orange')
   const [isActive, setIsActive] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
 
   const fetchBanners = async () => {
     setLoading(true)
     try {
-      const res = await apiFetch<{ banners: BannerItem[] }>('/admin/banners')
+      const res = await apiFetch<{ banners: BannerItem[]; totalCount?: number }>(
+        `/admin/banners?page=${page}&limit=${PAGE_SIZE}`,
+      )
       if (res && res.banners) {
         setBanners(res.banners)
+        setTotalCount(res.totalCount || 0)
       }
     } catch (err) {
       console.error('[AdminBanners] Fetch error:', err)
@@ -42,7 +49,7 @@ export default function AdminBannersPage() {
 
   useEffect(() => {
     fetchBanners()
-  }, [])
+  }, [page])
 
   const handleCreateBanner = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -344,6 +351,7 @@ export default function AdminBannersPage() {
                 </div>
               ))
             )}
+            <AdminPager page={page} totalCount={totalCount} onPage={setPage} />
           </div>
         </section>
       </div>

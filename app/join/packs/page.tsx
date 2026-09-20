@@ -92,7 +92,7 @@ export default function JoinPacksPage() {
 
   const [error, setError] = useState<string | null>(null)
 
-  const handleComplete = async () => {
+  const finishOnboarding = async (packs: string[]) => {
     setCompleting(true)
     setError(null)
 
@@ -119,7 +119,7 @@ export default function JoinPacksPage() {
           personalityTags: data?.personalityTags || [],
           customPersonalityTags: data?.customPersonalityTags || [],
           avatarData: data?.avatarData,
-          packs: Array.from(joinedPacks),
+          packs,
         },
       })
 
@@ -148,8 +148,12 @@ export default function JoinPacksPage() {
     }
   }
 
+  const handleComplete = () => {
+    void finishOnboarding(Array.from(joinedPacks))
+  }
+
   const handleSkip = () => {
-    router.push('/')
+    void finishOnboarding([])
   }
 
   return (
@@ -383,7 +387,8 @@ export default function JoinPacksPage() {
                 </button>
                 <button
                   onClick={handleSkip}
-                  className="w-full py-2 text-[13px] font-medium hover:underline transition-all"
+                  disabled={completing}
+                  className="w-full py-2 text-[13px] font-medium hover:underline transition-all disabled:opacity-50 disabled:no-underline"
                   style={{ color: '#887366' }}
                 >
                   Maybe later, show me The Yard
