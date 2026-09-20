@@ -18,7 +18,7 @@ import { applyFeedCounts, applyPostRowCounts, subscribeYardFeed } from '@/lib/su
 import { subscribePetBadges } from '@/lib/subscribePetBadges'
 import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
-import { getPetSpecies, getPostVerb } from '@/lib/petVerbMap'
+import { getPetSpecies, getPostVerb, getPostVerbPlural } from '@/lib/petVerbMap'
 
 interface PetProfile {
   id: string
@@ -593,7 +593,9 @@ export default function PetProfilePage() {
                   <p className="text-[22px] md:text-[26px] font-bold text-[#011E14]" style={{ fontFamily: 'Outfit, sans-serif' }}>
                     {dbStats.barksCount}
                   </p>
-                  <p className="text-[11px] text-[#727974] font-bold uppercase tracking-wider">Barks</p>
+                  <p className="text-[11px] text-[#727974] font-bold uppercase tracking-wider">
+                    {getPostVerbPlural(getPetSpecies(pet), 2).toUpperCase()}
+                  </p>
                 </div>
                 <div className="h-8 w-px bg-[#EDE8E1]" />
                 <div
@@ -632,7 +634,7 @@ export default function PetProfilePage() {
                     activeTab === 'barks' ? 'text-[#011E14]' : 'text-[#727974] hover:text-[#011E14]'
                   }`}
                 >
-                  Barks ({posts.length})
+                  {getPostVerbPlural(getPetSpecies(pet), 2)} ({posts.length})
                   {activeTab === 'barks' && (
                     <span className="absolute bottom-0 left-0 right-0 h-1 bg-[#E8843A] rounded-t-full" />
                   )}
@@ -696,11 +698,11 @@ export default function PetProfilePage() {
                 <div className="bg-white p-8 rounded-2xl border border-[#EDE8E1] text-center text-[#727974]">
                   <span className="material-symbols-outlined text-[36px] text-[#E8843A] mb-2">pets</span>
                   <p className="font-bold text-[#011E14] text-[16px]">{pet.name} has received {totalTreats} treats!</p>
-                  <p className="text-[13px] mt-1">Keep barking to collect more treats from the pack.</p>
+                  <p className="text-[13px] mt-1">Keep active to collect more treats from the pack.</p>
                 </div>
               ) : posts.length === 0 ? (
                 <div className="bg-white rounded-2xl p-8 border border-[#EDE8E1] text-center text-[#727974]">
-                  <p className="text-[14px]">{pet.name} has not posted any barks yet 🐾</p>
+                  <p className="text-[14px]">{pet.name} has not posted any {getPostVerbPlural(getPetSpecies(pet), 2).toLowerCase()} yet 🐾</p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-6">

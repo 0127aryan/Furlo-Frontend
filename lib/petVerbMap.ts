@@ -90,11 +90,14 @@ export function getPetSpecies(pet?: { species?: string | null; pet_type?: string
 function inferPetTypeFromBreed(breed?: string | null): string | undefined {
   if (!breed) return undefined
   const normalized = breed.toLowerCase().trim()
-  if (/\b(cat|kitten|feline|persian|siamese)\b/i.test(normalized)) return 'cats'
-  if (/\b(rabbit|bunny)\b/i.test(normalized)) return 'rabbits'
-  if (/\b(bird|parrot|cockatiel|budgie)\b/i.test(normalized)) return 'birds'
-  if (/\bhamster\b/i.test(normalized)) return 'hamsters'
-  if (/\b(dog|puppy|retriever|shepherd)\b/i.test(normalized)) return 'dogs'
+  if (/\b(cat|kitten|feline|persian|siamese|ragdoll|mainecoon|shorthair|bengal|sphynx|birman|burmese|chartreux|himalayan|manx|mau|munchkin|nebelung|ocicat|oriental|pixiebob|ragamuffin|savannah|scottish|selkirk|somali|tonkinese|turkish)\b/i.test(normalized)) return 'cats'
+  if (/\b(rabbit|bunny|lop|holland|rex|lionhead|flemish|angora|chinchilla|harlequin|havana|sable|silver|tan)\b/i.test(normalized)) return 'rabbits'
+  if (/\b(bird|parrot|cockatiel|budgie|canary|macaw|finch|cockatoo|conure|lovebird|lorikeet|pigeon|dove|parakeet)\b/i.test(normalized)) return 'birds'
+  if (/\b(hamster|gerbil|mouse|rat)\b/i.test(normalized)) return 'hamsters'
+  if (/\b(fish|goldfish|guppy|betta|tetra|cichlid|molly)\b/i.test(normalized)) return 'fishes'
+  if (/\b(turtle|tortoise)\b/i.test(normalized)) return 'turtles'
+  if (/\b(guinea|cavy)\b/i.test(normalized)) return 'guinea_pigs'
+  if (/\b(dog|puppy|retriever|shepherd|lab|labrador|beagle|poodle|husky|pug|bulldog|indie|terrier|boxer|chihuahua|dachshund|dobermann|pointer|rottweiler|pomeranian|shih tzu|spitz|mastiff|dalmatian|corgi|hound|spaniel|akita|malamute|samoyed|schnauzer|st\.? bernard|great dane|chow chow|basenji|basset)\b/i.test(normalized)) return 'dogs'
   return undefined
 }
 
