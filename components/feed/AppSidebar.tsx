@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { apiFetch } from "@/lib/api";
 import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
 import { unregisterWebPushToken } from "@/lib/webPushNotifications";
+import { resetAnalyticsUser } from "@/lib/posthog";
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -27,6 +28,7 @@ export function AppSidebar() {
   const handleLogout = async () => {
     setLoggingOut(true);
     clearAuth();
+    resetAnalyticsUser();
     try {
       await unregisterWebPushToken();
       await apiFetch("/auth/logout", { method: "POST" });

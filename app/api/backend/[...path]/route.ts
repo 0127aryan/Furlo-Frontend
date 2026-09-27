@@ -9,9 +9,26 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path: string[] }
   const headers = new Headers()
   req.headers.forEach((value, key) => {
     const lower = key.toLowerCase()
-    if (lower === 'host' || lower === 'connection' || lower === 'content-length') return
+    if (
+      lower === 'host' ||
+      lower === 'connection' ||
+      lower === 'content-length' ||
+      lower === 'x-forwarded-for' ||
+      lower === 'x-furlo-client-ip'
+    ) {
+      return
+    }
     headers.set(key, value)
   })
+
+  const clientIp =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip')?.trim() ||
+    undefined
+  if (clientIp) {
+    headers.set('x-forwarded-for', clientIp)
+    headers.set('x-furlo-client-ip', clientIp)
+  }
 
   const init: RequestInit = {
     method: req.method,

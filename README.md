@@ -32,7 +32,28 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-Optional: `NEXT_PUBLIC_SENTRY_DSN`, `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_FIREBASE_*` (web push), `NEXT_PUBLIC_GA_ID`.
+### Observability (optional)
+
+```env
+# Same DSN in both vars for server + client error capture (production only by default)
+SENTRY_DSN=
+NEXT_PUBLIC_SENTRY_DSN=
+
+NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN=
+NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+```
+
+PostHog initializes in `instrumentation-client.ts` (same pattern as `npx @posthog/wizard`) with a first-party `/ingest` proxy in `next.config.ts`. Events stay opted out until the user accepts the cookie banner. GA4 (`NEXT_PUBLIC_GA_ID`) loads only after the same consent.
+
+Optional: run the interactive wizard locally to link your PostHog account or add MCP tooling:
+
+```bash
+npx -y @posthog/wizard@latest
+```
+
+For readable stack traces on Vercel, set `SENTRY_ORG`, `SENTRY_PROJECT`, and `SENTRY_AUTH_TOKEN` in the Vercel project (not in git).
+
+Also optional: `NEXT_PUBLIC_FIREBASE_*` (web push), `NEXT_PUBLIC_GA_ID`.
 
 3. Run the app:
 
