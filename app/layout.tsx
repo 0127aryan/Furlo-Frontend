@@ -3,7 +3,9 @@ import { DM_Sans, Literata, Geist, Outfit, Plus_Jakarta_Sans } from 'next/font/g
 import Script from 'next/script'
 import './globals.css'
 import { cn } from "@/lib/utils";
+import { AnalyticsProviders } from '@/components/AnalyticsProviders'
 import { AppShell } from '@/components/AppShell'
+import { GoogleAnalyticsGate } from '@/components/GoogleAnalyticsGate'
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -81,23 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={`${dmSans.variable} ${literata.variable} ${outfit.variable} ${plusJakartaSans.variable} font-sans antialiased`} suppressHydrationWarning>
-        {/* Google Analytics (GA4) */}
-        {gaId && (
-          <>
-            <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-              strategy="afterInteractive"
-            />
-            <Script id="google-analytics" strategy="afterInteractive">
-              {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${gaId}');
-              `}
-            </Script>
-          </>
-        )}
+        {gaId ? <GoogleAnalyticsGate gaId={gaId} /> : null}
 
         {/* Google AdSense */}
         {adsenseClientId && (
@@ -109,7 +95,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           />
         )}
 
-        <AppShell>{children}</AppShell>
+        <AnalyticsProviders>
+          <AppShell>{children}</AppShell>
+        </AnalyticsProviders>
       </body>
     </html>
   )

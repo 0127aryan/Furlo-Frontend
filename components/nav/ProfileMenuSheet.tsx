@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { apiFetch } from '@/lib/api'
 import { unregisterWebPushToken } from '@/lib/webPushNotifications'
 import { CommunityDisclaimerFooter } from '@/components/feed/CommunityDisclaimerFooter'
+import { resetAnalyticsUser } from '@/lib/posthog'
 
 const LINKS = [
   { label: 'About', href: '/about' },
@@ -39,6 +40,7 @@ export function ProfileMenuSheet({
     setLoggingOut(true)
     onClose()
     clearAuth()
+    resetAnalyticsUser()
     try {
       await unregisterWebPushToken()
       await apiFetch('/auth/logout', { method: 'POST' })

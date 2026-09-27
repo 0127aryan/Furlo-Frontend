@@ -13,6 +13,7 @@ import { MobileTabBar } from '@/components/nav/MobileTabBar'
 import { subscribePetBadges } from '@/lib/subscribePetBadges'
 import { subscribePackStatus } from '@/lib/subscribePackStatus'
 import { startNotificationRealtime } from '@/lib/subscribeNotifications'
+import { identifyAnalyticsUser } from '@/lib/posthog'
 
 /**
  * AppShell — wraps all page content and manages the splash screen lifecycle.
@@ -28,7 +29,7 @@ import { startNotificationRealtime } from '@/lib/subscribeNotifications'
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [splashDone, setSplashDone] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const { user, setUser, setActivePet, onboardingData, setOnboardingData } = useAuthStore()
+  const { user, activePet, setUser, setActivePet, onboardingData, setOnboardingData } = useAuthStore()
 
   // Run on client — avoids SSR mismatch
   useEffect(() => {
@@ -89,6 +90,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!user?.id) return
     startNotificationRealtime(user.id)
   }, [user?.id])
+
+  useEffect(() => {
+    if (!user?.id) return
+    identifyAnalyticsUser(user.id, activePet?.id ? { active_pet_id: activePet.id } : undefined)
+  }, [user?.id, activePet?.id])
 
   useEffect(() => {
     const unsubBadges = subscribePetBadges(() => {})
