@@ -308,7 +308,7 @@ export default function QuestionDetailPage() {
           <div className="flex items-center justify-between text-xs font-bold text-[#727974]">
             <Link href="/qa" className="flex items-center gap-1.5 hover:text-[#011E14] transition-colors">
               <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-              <span>Back to Q&A Hub</span>
+              <span className="hidden md:inline">Back to Q&A Hub</span>
             </Link>
 
             {question?.topic_category && (

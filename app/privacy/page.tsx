@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Navbar } from '@/components/landing/Navbar'
 import { Footer } from '@/components/landing/Footer'
+import { MobileInfoHeader } from '@/components/nav/MobileInfoHeader'
 
 export const metadata = {
   title: 'Privacy Policy | Furlo',
@@ -13,7 +14,10 @@ export default function PrivacyPolicyPage() {
       className="min-h-screen flex flex-col"
       style={{ background: '#fef9f3', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
     >
-      <Navbar />
+      <div className="hidden md:block">
+        <Navbar />
+      </div>
+      <MobileInfoHeader title="Privacy" />
 
       <main className="flex-1 py-12 md:py-20 px-4 md:px-6 max-w-4xl mx-auto w-full">
         {/* Header */}
@@ -229,7 +233,9 @@ export default function PrivacyPolicyPage() {
         </div>
       </main>
 
-      <Footer />
+      <div className="hidden md:block">
+        <Footer />
+      </div>
     </div>
   )
 }

@@ -15,9 +15,11 @@ import { applyFeedCounts, applyPostRowCounts, subscribeYardFeed } from "@/lib/su
 import { subscribePetBadges } from "@/lib/subscribePetBadges";
 import { appendUniqueById, PAGE_SIZE } from "@/lib/pagination";
 import { getPetSpecies, getPostVerb, getPostVerbPlural } from "@/lib/petVerbMap";
+import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
 
 export default function FeedPage() {
   const { activePet, user } = useAuthStore();
+  const { count: unreadCount } = useUnreadNotificationCount();
   const postVerb = getPostVerb(getPetSpecies(activePet));
   const postVerbLower = postVerb.toLowerCase();
   const postVerbPluralLower = getPostVerbPlural(getPetSpecies(activePet), 2).toLowerCase();
@@ -156,7 +158,7 @@ export default function FeedPage() {
       <main className="flex-1 max-w-[640px] px-4 md:px-6 pt-6 pb-24 mx-auto w-full flex flex-col gap-6">
         {/* Mobile Sticky Top Header */}
         <header className="flex md:hidden items-center justify-between py-2 border-b border-[#ede8e1]">
-          <Link href="/" className="flex items-center gap-1.5">
+          <Link href="/feed" className="flex items-center gap-1.5">
             <span className="material-symbols-outlined text-[#E8843A] text-[24px]">
               pets
             </span>
@@ -167,10 +169,24 @@ export default function FeedPage() {
               furlo
             </span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/notifications"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap bg-white border border-[#EDE8E1] text-[#163328] px-3 py-1.5 rounded-full text-[12px] font-bold"
+            >
+              <span className="relative">
+                <span className="material-symbols-outlined text-[16px]">notifications</span>
+                {unreadCount > 0 ? (
+                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-[#E8843A] text-white text-[9px] font-bold flex items-center justify-center">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                ) : null}
+              </span>
+              Alerts
+            </Link>
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="bg-[#E8843A] text-white px-3.5 py-1.5 rounded-full text-[12px] font-bold"
+              className="bg-[#E8843A] text-white px-3.5 py-1.5 rounded-full text-[12px] font-bold whitespace-nowrap"
             >
               + Post {postVerb}
             </button>
@@ -203,11 +219,11 @@ export default function FeedPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-[#ede8e1]/60">
-            <div className="flex gap-4">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-2 border-t border-[#ede8e1]/60">
+            <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={() => setIsCreateOpen(true)}
-                className="flex items-center gap-1.5 text-[13px] text-[#554338] hover:text-[#163328] transition-colors"
+                className="flex items-center gap-1 shrink-0 whitespace-nowrap text-[13px] text-[#554338] hover:text-[#163328] transition-colors"
               >
                 <span className="material-symbols-outlined text-[18px] text-[#E8843A]">
                   image
@@ -216,7 +232,7 @@ export default function FeedPage() {
               </button>
               <button
                 onClick={() => setIsCreateOpen(true)}
-                className="flex items-center gap-1.5 text-[13px] text-[#554338] hover:text-[#163328] transition-colors"
+                className="flex items-center gap-1 shrink-0 whitespace-nowrap text-[13px] text-[#554338] hover:text-[#163328] transition-colors"
               >
                 <span className="material-symbols-outlined text-[18px] text-[#2d4a3e]">
                   quiz
@@ -225,7 +241,7 @@ export default function FeedPage() {
               </button>
               <button
                 onClick={() => setIsCreateOpen(true)}
-                className="flex items-center gap-1.5 text-[13px] text-[#554338] hover:text-[#163328] transition-colors"
+                className="flex items-center gap-1 shrink-0 whitespace-nowrap text-[13px] text-[#554338] hover:text-[#163328] transition-colors"
               >
                 <span className="material-symbols-outlined text-[18px] text-[#974900]">
                   lightbulb
@@ -236,7 +252,7 @@ export default function FeedPage() {
 
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="bg-[#E8843A] text-white text-[13px] font-bold px-5 py-1.5 rounded-full hover:bg-[#974900] transition-colors shadow-sm"
+              className="ml-auto shrink-0 whitespace-nowrap bg-[#E8843A] text-white text-[13px] font-bold px-4 py-1.5 rounded-full hover:bg-[#974900] transition-colors shadow-sm"
               style={{ fontFamily: "Outfit, sans-serif" }}
             >
               Post {postVerb}

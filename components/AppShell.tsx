@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react'
 import { SplashScreen } from '@/components/SplashScreen'
 import { apiFetch } from '@/lib/api'
+import { fetchMe } from '@/lib/sessionMe'
 import { useAuthStore } from '@/store/useAuthStore'
 
 import { ToastContainer } from '@/components/ui/ToastContainer'
 import { AnnouncementBanner } from '@/components/ui/AnnouncementBanner'
 import { WebPushBootstrap } from '@/components/WebPushBootstrap'
+import { MobileTabBar } from '@/components/nav/MobileTabBar'
 import { subscribePetBadges } from '@/lib/subscribePetBadges'
 import { subscribePackStatus } from '@/lib/subscribePackStatus'
 import { startNotificationRealtime } from '@/lib/subscribeNotifications'
@@ -35,24 +37,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // Recover session
     const recoverSession = async () => {
       try {
-        const data = await apiFetch('/auth/me')
+        const data = await fetchMe()
         if (data && data.user) {
           setUser(data.user)
           setActivePet(data.activePet)
 
-          // Auto-create pet profile if authenticated and petName was already configured in store
+          const onJoin = typeof window !== 'undefined' && window.location.pathname.startsWith('/join')
           const currentStore = useAuthStore.getState()
-          if (!data.activePet && currentStore.onboardingData?.petName) {
-            const ob = currentStore.onboardingData
+          const ob = currentStore.onboardingData
+          if (
+            !onJoin &&
+            !data.activePet &&
+            ob?.petName &&
+            ob.parentName &&
+            ob.termsAccepted === true
+          ) {
             try {
               const obRes = await apiFetch('/auth/complete-onboarding', {
                 method: 'POST',
                 json: {
+                  parentName: ob.parentName,
+                  termsAccepted: true,
+                  marketingOptIn: ob.marketingOptIn ?? false,
                   petName: ob.petName,
                   petUsername: ob.petUsername,
                   breed: ob.breed,
                   city: ob.city,
                   gender: ob.gender,
+                  dateOfBirth: ob.dateOfBirth,
                   bio: ob.bio,
                   personalityTags: ob.personalityTags,
                 },
@@ -108,6 +120,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         <AnnouncementBanner />
         {children}
+        <MobileTabBar />
       </div>
       <ToastContainer />
     </div>

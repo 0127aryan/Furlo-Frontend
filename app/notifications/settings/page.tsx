@@ -178,7 +178,7 @@ export default function NotificationSettingsPage() {
               <span className="w-8 h-8 rounded-full bg-[#F5F2ED] hover:bg-[#EDE8E1] flex items-center justify-center transition-colors">
                 <span className="material-symbols-outlined text-[18px]">arrow_back</span>
               </span>
-              <span>Back to Notifications</span>
+              <span className="hidden md:inline">Back to Notifications</span>
             </Link>
           </div>
 

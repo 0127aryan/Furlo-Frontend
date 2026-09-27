@@ -289,17 +289,16 @@ export default function SingleCommunityPage() {
     <div className="min-h-screen flex" style={{ background: '#FEF9F3', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
       <AppSidebar />
 
-      <main className="flex-1 max-w-[850px] px-4 md:px-8 pt-4 pb-24 mx-auto w-full flex flex-col gap-6">
-        {/* Mobile Navigation Header */}
-        <header className="flex md:hidden items-center justify-between py-2 border-b border-[#EDE8E1]">
-          <Link href="/packs" className="flex items-center gap-1 text-[#011E14] font-bold text-[14px]">
-            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-            <span>All Packs</span>
-          </Link>
-        </header>
+      <main className="flex-1 max-w-[850px] px-4 md:px-8 pt-0 md:pt-4 pb-24 mx-auto w-full flex flex-col gap-6">
 
         {loading ? (
-          <CommunityDetailSkeleton />
+          <div className="pt-4">
+            <Link href="/packs" className="md:hidden inline-flex items-center gap-1 text-[#011E14] font-bold text-[14px] mb-4">
+              <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+              Packs
+            </Link>
+            <CommunityDetailSkeleton />
+          </div>
         ) : error || !community ? (
           <div className="bg-white rounded-3xl p-10 border border-[#EDE8E1] text-center flex flex-col items-center gap-4 shadow-sm my-8">
             <span className="material-symbols-outlined text-[48px] text-[#974900]">groups</span>
@@ -316,10 +315,17 @@ export default function SingleCommunityPage() {
         ) : (
           <div className="flex flex-col gap-6">
             {/* Hero Cover Photo Banner */}
-            <div className="w-full h-52 md:h-72 rounded-3xl relative overflow-hidden bg-gradient-to-r from-[#163328] via-[#2d4a3e] to-[#E8843A] shadow-xs">
+            <div className="w-full h-[200px] md:h-72 rounded-none md:rounded-3xl -mx-4 md:mx-0 relative overflow-hidden bg-gradient-to-r from-[#163328] via-[#2d4a3e] to-[#E8843A] shadow-xs">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={community.cover_image_url} alt={community.name} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/10" />
+              <Link
+                href="/packs"
+                className="md:hidden absolute top-3 left-3 z-20 w-10 h-10 rounded-full bg-[rgba(1,30,20,0.45)] text-white flex items-center justify-center"
+                aria-label="All packs"
+              >
+                <span className="material-symbols-outlined text-[22px]">arrow_back</span>
+              </Link>
             </div>
 
             {/* Profile Identity Card */}

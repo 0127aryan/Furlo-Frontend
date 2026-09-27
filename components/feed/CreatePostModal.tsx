@@ -19,6 +19,7 @@ interface CreatePostModalProps {
   communities?: Community[]
   defaultCommunityId?: string
   defaultPostType?: PostType
+  presentation?: 'modal' | 'page'
 }
 
 type PostType = 'regular' | 'question' | 'advice' | 'meme'
@@ -39,6 +40,7 @@ export function CreatePostModal({
   communities = [],
   defaultCommunityId = '',
   defaultPostType = 'regular',
+  presentation = 'modal',
 }: CreatePostModalProps) {
   const { activePet, user } = useAuthStore()
   const postVerb = getPostVerb(getPetSpecies(activePet))
@@ -57,7 +59,7 @@ export function CreatePostModal({
     }
   }, [isOpen, defaultCommunityId, defaultPostType])
 
-  if (!isOpen) return null
+  if (presentation !== 'page' && !isOpen) return null
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -110,16 +112,36 @@ export function CreatePostModal({
   }
 
   const handleUsername = activePet?.username ? `@${activePet.username}` : user?.email?.split('@')[0] || '@user'
+  const isPage = presentation === 'page'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1c2329]/50 backdrop-blur-sm animate-fadeIn">
+    <div
+      className={
+        isPage
+          ? 'w-full max-w-[640px] mx-auto'
+          : 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1c2329]/50 backdrop-blur-sm animate-fadeIn'
+      }
+    >
       <div
-        className="bg-white w-full max-w-[560px] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-[#ede8e1]"
+        className={
+          isPage
+            ? 'bg-[#FEF9F3] md:bg-white w-full min-h-[70vh] md:min-h-0 md:my-4 md:rounded-2xl md:shadow-sm md:border md:border-[#ede8e1] flex flex-col overflow-hidden'
+            : 'bg-white w-full max-w-[560px] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-[#ede8e1]'
+        }
         style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
       >
         {/* Header */}
-        <header className="px-6 py-4 border-b border-[#ede8e1] flex items-center justify-between">
-          <div>
+        <header className={`px-4 md:px-6 py-4 border-b border-[#ede8e1] flex items-center ${isPage ? 'justify-start gap-2' : 'justify-between'}`}>
+          {isPage && (
+            <button
+              onClick={onClose}
+              className="w-11 h-11 rounded-full flex items-center justify-center hover:bg-[#f2ede6] transition-colors text-[#011E14] shrink-0"
+              aria-label="Back"
+            >
+              <span className="material-symbols-outlined text-[22px]">arrow_back</span>
+            </button>
+          )}
+          <div className="flex-1 min-w-0">
             <h2 className="text-[20px] font-bold text-[#163328]" style={{ fontFamily: 'Outfit, sans-serif' }}>
               Create a Post
             </h2>
@@ -127,12 +149,14 @@ export function CreatePostModal({
               Posting as <span className="font-semibold text-[#E8843A]">{handleUsername}</span>
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#f2ede6] transition-colors text-[#554338]"
-          >
-            <span className="material-symbols-outlined text-[20px]">close</span>
-          </button>
+          {!isPage && (
+            <button
+              onClick={onClose}
+              className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#f2ede6] transition-colors text-[#554338]"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          )}
         </header>
 
         {/* Scrollable Content */}

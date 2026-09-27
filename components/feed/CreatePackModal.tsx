@@ -95,8 +95,11 @@ export function CreatePackModal({ isOpen, onClose, onSuccess }: CreatePackModalP
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-      <div className="bg-[#FEF9F3] w-full max-w-lg rounded-3xl shadow-2xl border border-[#EDE8E1] overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-[rgba(1,30,20,0.45)]">
+      <div className="bg-[#FEF9F3] w-full max-w-lg rounded-t-[28px] md:rounded-3xl shadow-2xl border border-[#EDE8E1] overflow-hidden flex flex-col max-h-[92vh]">
+        <div className="md:hidden flex justify-center pt-2 bg-white">
+          <div className="w-10 h-1.5 rounded-full bg-[#EDE8E1]" />
+        </div>
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#EDE8E1] bg-white">
           <h2 className="text-[20px] font-bold text-[#011E14]" style={{ fontFamily: 'Outfit, sans-serif' }}>

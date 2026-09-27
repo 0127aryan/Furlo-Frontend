@@ -4,9 +4,10 @@ import Link from 'next/link'
 
 interface DisclaimerFooterProps {
   className?: string
+  compact?: boolean
 }
 
-export function CommunityDisclaimerFooter({ className = '' }: DisclaimerFooterProps) {
+export function CommunityDisclaimerFooter({ className = '', compact = false }: DisclaimerFooterProps) {
   return (
     <footer className={`text-[11px] text-[#887366] flex flex-col gap-3.5 pt-4 border-t border-[#EDE8E1] ${className}`}>
       <div className="bg-[#FFF9F2] p-3 rounded-2xl border border-[#FDE8D3] leading-relaxed text-[#6E5A4D]">
@@ -33,6 +34,7 @@ export function CommunityDisclaimerFooter({ className = '' }: DisclaimerFooterPr
         </a>
       </div>
 
+      {!compact && (
       <div className="flex flex-wrap items-center gap-3 text-[#727974] font-medium text-[11px] px-0.5">
         <Link href="/about" className="hover:text-[#011E14] transition-colors">
           About
@@ -45,6 +47,7 @@ export function CommunityDisclaimerFooter({ className = '' }: DisclaimerFooterPr
         </Link>
         <span>© 2026 Furlo Inc.</span>
       </div>
+      )}
     </footer>
   )
 }

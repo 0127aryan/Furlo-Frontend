@@ -83,6 +83,7 @@ export default function QAHubPage() {
   const [trending, setTrending] = useState<TrendingItem[]>([])
   const [helpers, setHelpers] = useState<HelperPet[]>([])
   const [activeCategory, setActiveCategory] = useState('All Questions')
+  const [qaFilter, setQaFilter] = useState<'all' | 'unanswered' | 'solved'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -107,10 +108,11 @@ export default function QAHubPage() {
       const isUnanswered = activeCategory === 'Unanswered'
       const catParam = activeCategory !== 'Unanswered' && activeCategory !== 'All Questions' ? `&category=${encodeURIComponent(activeCategory)}` : ''
       const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
-      const unansweredParam = isUnanswered ? '&unanswered=true' : ''
+      const filterParam = qaFilter !== 'all' ? `&filter=${qaFilter}` : ''
+      const unansweredParam = qaFilter === 'all' && isUnanswered ? '&unanswered=true' : ''
 
       const data = await apiFetch<{ questions: QuestionPost[]; hasMore?: boolean }>(
-        `/posts/qa/questions?v=1&page=${nextPage}&limit=${PAGE_SIZE}${catParam}${searchParam}${unansweredParam}${petQuery}`
+        `/posts/qa/questions?v=1&page=${nextPage}&limit=${PAGE_SIZE}${catParam}${searchParam}${unansweredParam}${filterParam}${petQuery}`
       )
 
       if (data && data.questions) {
@@ -125,7 +127,7 @@ export default function QAHubPage() {
       loadingMoreRef.current = false
       setLoadingMore(false)
     }
-  }, [activeCategory, searchQuery, activePet?.id])
+  }, [activeCategory, searchQuery, activePet?.id, qaFilter])
 
   const fetchSidebars = useCallback(async () => {
     try {
@@ -173,9 +175,22 @@ export default function QAHubPage() {
     <div className="min-h-screen flex" style={{ background: '#FEF9F3', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
       <AppSidebar />
 
-      <main className="flex-1 max-w-[840px] px-4 md:px-8 py-6 mx-auto w-full flex flex-col gap-5">
-        {/* Top Title & Action Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <main className="flex-1 max-w-[840px] px-4 md:px-8 py-4 md:py-6 pb-28 mx-auto w-full flex flex-col gap-5">
+        <header className="flex md:hidden items-start gap-1">
+          <Link href="/feed" className="w-11 h-11 flex items-center justify-center text-[#011E14] shrink-0">
+            <span className="material-symbols-outlined text-[22px]">arrow_back</span>
+          </Link>
+          <div className="pt-1.5">
+            <h1 className="text-[24px] font-bold text-[#011E14]" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              Pet Q&A Hub 🐾
+            </h1>
+            <p className="text-[13px] text-[#727974]">
+              Ask questions and get advice from pet parents
+            </p>
+          </div>
+        </header>
+
+        <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-[26px] sm:text-[32px] font-extrabold text-[#011E14] tracking-tight flex items-center gap-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
               <span>Pet Q&A & Advice Hub</span>
@@ -188,7 +203,7 @@ export default function QAHubPage() {
 
           <button
             onClick={() => setIsComposerOpen(true)}
-            className="bg-[#E8843A] hover:bg-[#974900] text-white px-5 py-2.5 rounded-full font-bold text-[14px] flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 shrink-0 self-start sm:self-auto"
+            className="hidden md:flex bg-[#E8843A] hover:bg-[#974900] text-white px-5 py-2.5 rounded-full font-bold text-[14px] items-center justify-center gap-2 shadow-sm transition-all active:scale-95 shrink-0 self-start sm:self-auto"
           >
             <span className="text-[18px]">❓</span>
             <span>Ask a Question</span>
@@ -196,7 +211,7 @@ export default function QAHubPage() {
         </div>
 
         {/* Search Bar */}
-        <div className="relative">
+        <div className="relative hidden md:block">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#727974]">
             <span className="material-symbols-outlined text-[20px]">search</span>
           </div>
@@ -207,6 +222,71 @@ export default function QAHubPage() {
             placeholder="Search questions about diet, health, training, breeds..."
             className="w-full pl-11 pr-4 py-3 bg-white border border-[#EDE8E1] rounded-full text-[#011E14] text-[14px] placeholder-[#727974] focus:outline-none focus:ring-2 focus:ring-[#E8843A]/30 transition-shadow shadow-2xs"
           />
+        </div>
+
+        <section className="md:hidden flex flex-col gap-3">
+          {helpers.length > 0 && (
+            <div className="bg-white rounded-3xl border border-[#EDE8E1] p-4">
+              <h2 className="text-[12px] font-bold uppercase tracking-wider text-[#2d4a3e] mb-3" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                Top Helpful Pets
+              </h2>
+              <div className="flex gap-3 overflow-x-auto pb-1">
+                {helpers.slice(0, 5).map((helper) => (
+                  <Link
+                    key={helper.id}
+                    href={helper.username ? `/pet/${helper.username}` : `/pet/${helper.id}`}
+                    className="shrink-0 w-16 text-center"
+                  >
+                    {helper.profile_image_url ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={helper.profile_image_url} alt={helper.name} className="w-14 h-14 rounded-full object-cover mx-auto border border-[#EDE8E1]" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-[#f8f3ed] mx-auto flex items-center justify-center text-[#E8843A]">
+                        <span className="material-symbols-outlined">pets</span>
+                      </div>
+                    )}
+                    <p className="text-[11px] font-bold text-[#163328] truncate mt-1">{helper.name}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+          {trending.length > 0 && (
+            <div className="bg-white rounded-3xl border border-[#EDE8E1] p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-[12px] font-bold uppercase tracking-wider text-[#2d4a3e]" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                  Trending Questions
+                </h2>
+                <span className="bg-[#FFDBC7] text-[#974900] text-[10px] font-bold px-2 py-0.5 rounded-full">This Week</span>
+              </div>
+              <div className="space-y-2">
+                {trending.slice(0, 3).map((item) => (
+                  <Link key={item.id} href={`/qa/${item.id}`} className="block text-[13px] font-bold text-[#011E14] line-clamp-2">
+                    {item.caption || 'Pet advice question'}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+
+        <div className="md:hidden grid grid-cols-3 bg-[#f8f3ed] rounded-full p-1">
+          {([
+            ['all', 'All'],
+            ['unanswered', 'Unanswered'],
+            ['solved', 'Solved'],
+          ] as const).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setQaFilter(id)}
+              className={`py-2 rounded-full text-[12px] font-bold ${
+                qaFilter === id ? 'bg-white text-[#011E14] shadow-sm' : 'text-[#554338]'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Filter Pill Row (Horizontal Scrollable) */}
@@ -271,6 +351,14 @@ export default function QAHubPage() {
           </div>
         )}
       </main>
+
+      <button
+        type="button"
+        onClick={() => setIsComposerOpen(true)}
+        className="md:hidden fixed bottom-20 right-4 z-30 bg-[#E8843A] text-white px-4 py-3 rounded-full font-bold text-[13px] shadow-lg"
+      >
+        Ask Question
+      </button>
 
       {/* Right Sidebar Widgets */}
       <RightSidebar />

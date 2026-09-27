@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useAuthStore } from '@/store/useAuthStore'
 import { apiFetch } from '@/lib/api'
 import { PET_TYPE_OPTIONS, BREEDS_BY_PET_TYPE } from '@/constants/petData'
+import { LegalModal } from '@/components/onboarding/LegalModal'
 import { Dog, Cat, Bird, Rabbit, Shapes } from 'lucide-react'
 
 function PetTypeIcon({ type }: { type: string }) {
@@ -29,6 +30,12 @@ export default function JoinProfilePage() {
   const { onboardingData, setOnboardingData } = useAuthStore()
   const role = onboardingData?.role || 'parent'
 
+  const [parentName, setParentName] = useState(onboardingData?.parentName || '')
+  const [termsAccepted, setTermsAccepted] = useState(onboardingData?.termsAccepted ?? false)
+  const [marketingOptIn, setMarketingOptIn] = useState(onboardingData?.marketingOptIn ?? false)
+  const [termsModalOpen, setTermsModalOpen] = useState(false)
+  const [marketingModalOpen, setMarketingModalOpen] = useState(false)
+
   // Pet parent fields
   const [petName, setPetName] = useState(onboardingData?.petName || '')
   const [petUsername, setPetUsername] = useState(onboardingData?.petUsername || '')
@@ -38,6 +45,7 @@ export default function JoinProfilePage() {
   const [customBreed, setCustomBreed] = useState(onboardingData?.customBreed || '')
   const [gender, setGender] = useState<'male' | 'female' | 'unknown'>(onboardingData?.gender || 'unknown')
   const [city, setCity] = useState(onboardingData?.city || '')
+  const [dateOfBirth, setDateOfBirth] = useState(onboardingData?.dateOfBirth || '')
 
   // Searchable Breed Dropdown State
   const [isBreedDropdownOpen, setIsBreedDropdownOpen] = useState(false)
@@ -164,14 +172,38 @@ export default function JoinProfilePage() {
     }
   }
 
+  const consentValid = parentName.trim().length >= 2 && termsAccepted
+
+  const canContinue = () => {
+    if (!consentValid) return false
+    if (isCheckingUsername || usernameAvailable === false) return false
+    const handle = role === 'parent' ? petUsername : loverUsername
+    if (handle.length > 0 && handle.length < 3) return false
+    if (role === 'parent') {
+      if (!petName.trim() || !city.trim() || !petType) return false
+      if (petType === 'other' && !customPetType.trim()) return false
+      if (breed === 'Other' && !customBreed.trim()) return false
+      return true
+    }
+    return Boolean(displayName.trim() && city.trim())
+  }
+
   const handleContinue = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!canContinue()) return
 
     const resolvedPetType = petType === 'other' ? (customPetType || 'Other') : petType
     const resolvedBreed = breed === 'Other' ? (customBreed || 'Other') : (breed || 'Unknown')
 
+    const consentFields = {
+      parentName: parentName.trim(),
+      termsAccepted: true as const,
+      marketingOptIn,
+    }
+
     if (role === 'parent') {
       setOnboardingData({
+        ...consentFields,
         petName,
         petUsername: petUsername ? petUsername.trim() : undefined,
         petType: resolvedPetType,
@@ -180,10 +212,12 @@ export default function JoinProfilePage() {
         customBreed: breed === 'Other' ? customBreed : undefined,
         gender,
         city,
+        dateOfBirth: dateOfBirth || undefined,
         avatarData: avatarBase64 || undefined,
       })
     } else {
       setOnboardingData({
+        ...consentFields,
         petName: displayName,
         petUsername: loverUsername ? loverUsername.trim() : undefined,
         city,
@@ -669,6 +703,33 @@ export default function JoinProfilePage() {
                   </div>
                 </div>
 
+                {/* Date of birth (optional) */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#476558' }}>
+                    Date of birth <span className="normal-case font-medium tracking-normal">(optional)</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={dateOfBirth}
+                      max={new Date().toISOString().slice(0, 10)}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      className="flex-1 pl-4 pr-4 py-3.5 rounded-xl border text-[15px] outline-none transition-all"
+                      style={{ background: '#fff', borderColor: '#ede8e1', color: '#1d1b18' }}
+                    />
+                    {dateOfBirth ? (
+                      <button
+                        type="button"
+                        onClick={() => setDateOfBirth('')}
+                        className="text-[13px] font-semibold shrink-0"
+                        style={{ color: '#E8843A' }}
+                      >
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+
                 {/* City */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#476558' }}>
@@ -823,12 +884,66 @@ export default function JoinProfilePage() {
               </>
             )}
 
+            <div className="flex flex-col gap-1.5 pt-2">
+              <label className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#476558' }}>
+                {role === 'parent' ? 'Pet Parent Name' : 'Your name'}
+              </label>
+              <input
+                type="text"
+                placeholder="Your full name"
+                value={parentName}
+                onChange={(e) => setParentName(e.target.value)}
+                className="w-full px-4 py-3.5 rounded-xl border text-[15px] outline-none transition-all"
+                style={{ background: '#fff', borderColor: '#ede8e1', color: '#1d1b18' }}
+              />
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-1 h-4 w-4 accent-[#E8843A]"
+              />
+              <span className="text-[13px] leading-relaxed" style={{ color: '#554338' }}>
+                I agree to the{' '}
+                <button
+                  type="button"
+                  onClick={() => setTermsModalOpen(true)}
+                  className="font-semibold underline"
+                  style={{ color: '#974900' }}
+                >
+                  Terms of Service
+                </button>
+              </span>
+            </label>
+
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={marketingOptIn}
+                onChange={(e) => setMarketingOptIn(e.target.checked)}
+                className="mt-1 h-4 w-4 accent-[#E8843A]"
+              />
+              <span className="text-[13px] leading-relaxed" style={{ color: '#554338' }}>
+                Send me occasional Furlo updates{' '}
+                <button
+                  type="button"
+                  onClick={() => setMarketingModalOpen(true)}
+                  className="font-semibold underline"
+                  style={{ color: '#974900' }}
+                >
+                  (optional)
+                </button>
+              </span>
+            </label>
+
             {/* CTA */}
             <div className="pt-2">
               <button
                 id="btn-profile-continue"
                 type="submit"
-                disabled={isCheckingUsername || usernameAvailable === false}
+                disabled={!canContinue()}
                 className="w-full py-4 rounded-full flex items-center justify-center gap-2 font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   background: '#E8843A',
@@ -845,6 +960,23 @@ export default function JoinProfilePage() {
           </form>
         </div>
       </main>
+
+      <LegalModal open={termsModalOpen} title="Terms of Service" onClose={() => setTermsModalOpen(false)}>
+        <p className="mb-4">
+          By using Furlo you agree to our community guidelines, acceptable use, and privacy practices. You must be 18+
+          or have guardian consent to register.
+        </p>
+        <Link href="/terms" className="font-semibold underline" style={{ color: '#974900' }}>
+          Read full Terms of Service
+        </Link>
+      </LegalModal>
+
+      <LegalModal open={marketingModalOpen} title="Marketing emails" onClose={() => setMarketingModalOpen(false)}>
+        <p>
+          If you opt in, we may email you about Furlo features, pet-care tips, and community highlights — typically
+          a few messages per month. You can unsubscribe anytime. We will not sell your email.
+        </p>
+      </LegalModal>
 
       <style>{`
         @keyframes slideIn {

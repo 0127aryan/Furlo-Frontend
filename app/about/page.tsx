@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Navbar } from '@/components/landing/Navbar'
 import { Footer } from '@/components/landing/Footer'
+import { MobileInfoHeader } from '@/components/nav/MobileInfoHeader'
 
 export const metadata = {
   title: 'About Us | Furlo — Where Pets Belong',
@@ -13,7 +14,10 @@ export default function AboutPage() {
       className="min-h-screen flex flex-col"
       style={{ background: '#fef9f3', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
     >
-      <Navbar />
+      <div className="hidden md:block">
+        <Navbar />
+      </div>
+      <MobileInfoHeader title="About" />
 
       <main className="flex-1">
         {/* Hero Section */}
@@ -195,7 +199,9 @@ export default function AboutPage() {
         </section>
       </main>
 
-      <Footer />
+      <div className="hidden md:block">
+        <Footer />
+      </div>
     </div>
   )
 }

@@ -15,7 +15,7 @@ export function ToastContainer() {
   if (messages.length === 0) return null
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none px-4">
+    <div className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none px-4">
       {messages.map((t) => {
         const isError = t.type === 'error'
         const isSuccess = t.type === 'success'
