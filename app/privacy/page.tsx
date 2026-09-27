@@ -181,6 +181,10 @@ export default function PrivacyPolicyPage() {
                 <h3 className="font-bold text-[#1d1b18]">PostHog &amp; Sentry</h3>
                 <p className="text-[#887366] text-[13px] mt-1">Anonymized telemetry, error logging, and performance monitoring.</p>
               </div>
+              <div className="p-4 rounded-xl border bg-white border-[#ede8e1]">
+                <h3 className="font-bold text-[#1d1b18]">Google Analytics &amp; AdSense</h3>
+                <p className="text-[#887366] text-[13px] mt-1">Site measurement and ads, loaded only after you accept cookies. Google may use cookies to measure visits and show ads.</p>
+              </div>
             </div>
           </section>
 
