@@ -49,8 +49,8 @@ export function CookieConsentBanner() {
     >
       <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[13px] leading-relaxed text-[#554338]">
-          We use anonymised analytics (PostHog) to improve Furlo. Error reports go to Sentry without
-          selling your data. See our{' '}
+          We use Google Analytics and PostHog to understand how Furlo is used, and Google ads to
+          support the site. Error reports go to Sentry. See our{' '}
           <Link href="/privacy" className="font-medium text-[#974900] underline-offset-2 hover:underline">
             Privacy Policy
           </Link>
@@ -69,7 +69,7 @@ export function CookieConsentBanner() {
             onClick={accept}
             className="rounded-full bg-[#974900] px-4 py-2 text-[13px] font-medium text-white"
           >
-            Accept analytics
+            Accept
           </button>
         </div>
       </div>

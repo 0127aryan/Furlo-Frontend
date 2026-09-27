@@ -1,23 +1,37 @@
 'use client'
 
 import Script from 'next/script'
-import { useEffect, useState } from 'react'
-import {
-  ANALYTICS_CONSENT_EVENT,
-  hasAnalyticsConsent,
-} from '@/lib/analyticsConsent'
+import { usePathname } from 'next/navigation'
+import { useEffect, useRef } from 'react'
+import { useAnalyticsConsent } from '@/lib/useAnalyticsConsent'
+
+declare global {
+  interface Window {
+    dataLayer?: unknown[]
+    gtag?: (...args: unknown[]) => void
+  }
+}
+
+function isGaId(value: string) {
+  return /^G-[A-Z0-9]+$/i.test(value)
+}
 
 export function GoogleAnalyticsGate({ gaId }: { gaId: string }) {
-  const [enabled, setEnabled] = useState(false)
+  const enabled = useAnalyticsConsent()
+  const pathname = usePathname()
+  const firstPath = useRef<string | null>(null)
 
   useEffect(() => {
-    const sync = () => setEnabled(hasAnalyticsConsent())
-    sync()
-    window.addEventListener(ANALYTICS_CONSENT_EVENT, sync)
-    return () => window.removeEventListener(ANALYTICS_CONSENT_EVENT, sync)
-  }, [])
+    if (!enabled || !pathname || !isGaId(gaId)) return
+    if (firstPath.current === null) {
+      firstPath.current = pathname
+      return
+    }
+    if (typeof window.gtag !== 'function') return
+    window.gtag('config', gaId, { page_path: pathname })
+  }, [enabled, pathname, gaId])
 
-  if (!enabled) return null
+  if (!enabled || !isGaId(gaId)) return null
 
   return (
     <>
@@ -26,6 +40,7 @@ export function GoogleAnalyticsGate({ gaId }: { gaId: string }) {
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
+          window.gtag = gtag;
           gtag('js', new Date());
           gtag('config', '${gaId}');
         `}

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/api'
 import { SidebarWidgetSkeleton } from '@/components/skeletons'
+import { AdSenseUnit } from '@/components/ads/AdSenseUnit'
 import { CommunityDisclaimerFooter } from './CommunityDisclaimerFooter'
 
 interface DbPack {
@@ -255,6 +256,11 @@ export function RightSidebar() {
           </div>
         )}
       </section>
+
+      <AdSenseUnit
+        slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR}
+        className="overflow-hidden rounded-3xl"
+      />
 
       {/* 5. Veterinary / Community Advice Disclaimer & Footer Links */}
       <CommunityDisclaimerFooter className="mt-auto pt-2" />

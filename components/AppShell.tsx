@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { ToastContainer } from '@/components/ui/ToastContainer'
 import { AnnouncementBanner } from '@/components/ui/AnnouncementBanner'
 import { WebPushBootstrap } from '@/components/WebPushBootstrap'
+import { AdSenseMobileBanner } from '@/components/ads/AdSenseMobileBanner'
 import { MobileTabBar } from '@/components/nav/MobileTabBar'
 import { subscribePetBadges } from '@/lib/subscribePetBadges'
 import { subscribePackStatus } from '@/lib/subscribePackStatus'
@@ -126,6 +127,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         <AnnouncementBanner />
         {children}
+        <AdSenseMobileBanner />
         <MobileTabBar />
       </div>
       <ToastContainer />

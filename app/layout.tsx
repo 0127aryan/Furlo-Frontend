@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import { DM_Sans, Literata, Geist, Outfit, Plus_Jakarta_Sans } from 'next/font/google'
-import Script from 'next/script'
 import './globals.css'
 import { cn } from "@/lib/utils";
 import { AnalyticsProviders } from '@/components/AnalyticsProviders'
 import { AppShell } from '@/components/AppShell'
+import { AdSenseGate } from '@/components/ads/AdSenseGate'
 import { GoogleAnalyticsGate } from '@/components/GoogleAnalyticsGate'
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
@@ -84,16 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${dmSans.variable} ${literata.variable} ${outfit.variable} ${plusJakartaSans.variable} font-sans antialiased`} suppressHydrationWarning>
         {gaId ? <GoogleAnalyticsGate gaId={gaId} /> : null}
-
-        {/* Google AdSense */}
-        {adsenseClientId && (
-          <Script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`}
-            crossOrigin="anonymous"
-            strategy="afterInteractive"
-          />
-        )}
+        {adsenseClientId ? <AdSenseGate clientId={adsenseClientId} /> : null}
 
         <AnalyticsProviders>
           <AppShell>{children}</AppShell>
