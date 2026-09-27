@@ -242,17 +242,15 @@ export default function PacksDiscoveryPage() {
 
       <main className="flex-1 max-w-[900px] px-4 md:px-8 pt-4 pb-24 mx-auto w-full flex flex-col gap-8">
         {/* Mobile Header */}
-        <header className="flex md:hidden items-center justify-between py-2 border-b border-[#EDE8E1]">
-          <Link href="/feed" className="flex items-center gap-1 text-[#011E14] font-bold text-[14px]">
-            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-            <span>Back to Yard</span>
+        <header className="flex md:hidden items-center justify-between py-2">
+          <Link href="/feed" className="w-11 h-11 flex items-center justify-center text-[#011E14]">
+            <span className="material-symbols-outlined text-[22px]">arrow_back</span>
           </Link>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-[#E8843A] text-white px-3.5 py-1.5 rounded-full text-[12px] font-bold flex items-center gap-1"
+            className="bg-[#E8843A] text-white px-4 py-1.5 rounded-full text-[13px] font-bold"
           >
-            <span className="material-symbols-outlined text-[16px]">add</span>
-            <span>Create Pack</span>
+            Create
           </button>
         </header>
 
@@ -260,7 +258,7 @@ export default function PacksDiscoveryPage() {
         <section>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4">
             <div>
-              <h1 className="text-[32px] md:text-[44px] font-bold text-[#011E14] leading-tight" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              <h1 className="text-[28px] md:text-[44px] font-bold text-[#011E14] leading-tight" style={{ fontFamily: 'Outfit, sans-serif' }}>
                 Find Your Pack 🐾
               </h1>
               <p className="text-[15px] text-[#424844] mt-1">

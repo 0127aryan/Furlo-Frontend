@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { apiFetch } from '@/lib/api'
+import { persistSession } from '@/lib/persistSession'
 import { useAuthStore } from '@/store/useAuthStore'
 import { getWebmailInfo } from '@/lib/email-helpers'
 
@@ -21,6 +22,13 @@ function JoinContent() {
       setMode('signin')
     }
   }, [modeParam])
+
+  useEffect(() => {
+    const oauthErr = searchParams.get('error')
+    if (oauthErr === 'oauth_failed') {
+      setError('Google sign-in failed. Please try again or use email.')
+    }
+  }, [searchParams])
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,7 +40,8 @@ function JoinContent() {
   const [pendingEmail, setPendingEmail] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
   const [resendSuccess, setResendSuccess] = useState(false)
-  const [checkingStatus, setCheckingStatus] = useState(false)
+  const [otpCode, setOtpCode] = useState('')
+  const [verifyOtpLoading, setVerifyOtpLoading] = useState(false)
 
   const router = useRouter()
   const { setUser, setActivePet, setOnboardingData } = useAuthStore()
@@ -40,64 +49,10 @@ function JoinContent() {
   const isSignup = mode === 'signup'
   const webmailInfo = getWebmailInfo(pendingEmail)
 
-  // Poll for verification status every 4 seconds when in verification pending state
-  useEffect(() => {
-    if (!verificationPending || !pendingEmail) return
-
-    let isMounted = true
-    const interval = setInterval(async () => {
-      try {
-        const res = await apiFetch(`/auth/check-verification?email=${encodeURIComponent(pendingEmail)}`)
-        if (isMounted && res.verified) {
-          clearInterval(interval)
-          let authenticated = false
-
-          // 1. Check if session cookies are established
-          try {
-            const meRes = await apiFetch('/auth/me')
-            if (meRes && meRes.user) {
-              setUser(meRes.user)
-              setActivePet(meRes.activePet)
-              authenticated = true
-            }
-          } catch (e) {
-            console.log('[join] Session update on verify check:', e)
-          }
-
-          // 2. Auto-login fallback if cookies were not automatically transferred across tabs
-          if (!authenticated) {
-            const currentStore = useAuthStore.getState()
-            const savedEmail = currentStore.onboardingData?.email || pendingEmail
-            const savedPassword = currentStore.onboardingData?.password
-            if (savedEmail && savedPassword) {
-              try {
-                const loginRes = await apiFetch('/auth/login', {
-                  method: 'POST',
-                  json: { email: savedEmail, password: savedPassword },
-                })
-                if (loginRes && loginRes.user) {
-                  setUser(loginRes.user)
-                  setActivePet(loginRes.activePet)
-                  authenticated = true
-                }
-              } catch (loginErr) {
-                console.error('[join] Auto-login fallback failed:', loginErr)
-              }
-            }
-          }
-
-          router.push('/join/select')
-        }
-      } catch (err) {
-        // Silent poll error handling
-      }
-    }, 4000)
-
-    return () => {
-      isMounted = false
-      clearInterval(interval)
-    }
-  }, [verificationPending, pendingEmail, router, setUser, setActivePet])
+  const handleGoogleSignIn = () => {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || '/api/backend'
+    window.location.href = `${apiBase}/auth/oauth/google?platform=web`
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -131,6 +86,7 @@ function JoinContent() {
           json: { email, password },
         })
 
+        await persistSession(res.session)
         setUser(res.user)
         setActivePet(res.activePet)
         if (res.activePet) {
@@ -146,31 +102,42 @@ function JoinContent() {
     }
   }
 
-  const handleManualCheckVerification = async () => {
-    if (!pendingEmail || checkingStatus) return
-    setCheckingStatus(true)
+  const handleVerifyOtp = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (!pendingEmail || verifyOtpLoading) return
+    const token = otpCode.replace(/\s/g, '')
+    if (token.length < 6) {
+      setError('Enter the 6-digit code from your email.')
+      return
+    }
+
+    setVerifyOtpLoading(true)
     setError(null)
 
     try {
-      const res = await apiFetch(`/auth/check-verification?email=${encodeURIComponent(pendingEmail)}`)
-      if (res.verified) {
-        try {
-          const meRes = await apiFetch('/auth/me')
-          if (meRes.user) {
-            setUser(meRes.user)
-            setActivePet(meRes.activePet)
-          }
-        } catch (e) {
-          console.log('[join] Session me check:', e)
-        }
-        router.push('/join/select')
+      const savedPassword = useAuthStore.getState().onboardingData?.password
+      const res = await apiFetch('/auth/verify-email-otp', {
+        method: 'POST',
+        json: {
+          email: pendingEmail,
+          token,
+          ...(savedPassword ? { password: savedPassword } : {}),
+        },
+      })
+      await persistSession(res.session)
+      setUser(res.user)
+      setActivePet(res.activePet)
+      setOnboardingData({ email: pendingEmail })
+      setOtpCode('')
+      if (res.activePet) {
+        router.push('/feed')
       } else {
-        setError('Email not confirmed yet. Please check your inbox and click the verification link.')
+        router.push('/join/select')
       }
     } catch (err: any) {
-      setError(err.message || 'Could not verify status. Please try clicking the link in your email.')
+      setError(err.message || 'Invalid or expired code. Try again or resend.')
     } finally {
-      setCheckingStatus(false)
+      setVerifyOtpLoading(false)
     }
   }
 
@@ -246,11 +213,11 @@ function JoinContent() {
                   Verify your email address 📩
                 </h1>
                 <p className="text-[14px] text-[#554338] leading-relaxed">
-                  We've sent a verification link to{' '}
+                  We sent a 6-digit code to{' '}
                   <span className="font-semibold text-[#974900] break-all">{pendingEmail}</span>.
                 </p>
                 <p className="text-[13px] text-[#887366]">
-                  Click the link in your email to unlock your profile creation.
+                  Enter the code below to continue to profile setup.
                 </p>
               </div>
 
@@ -276,75 +243,65 @@ function JoinContent() {
                   <span className="material-symbols-outlined text-[18px] text-[#10b981]">
                     check_circle
                   </span>
-                  <span>Confirmation link resent! Check your inbox.</span>
+                  <span>Verification code resent! Check your inbox.</span>
                 </div>
               )}
 
-              {/* Dynamic Webmail Link CTA */}
-              <div className="w-full flex flex-col gap-3">
-                <a
-                  id="btn-open-webmail"
-                  href={webmailInfo.webmailUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-3.5 px-6 rounded-full text-[15px] font-semibold text-white flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md"
+              <form onSubmit={handleVerifyOtp} className="w-full flex flex-col gap-3">
+                <label className="text-[12px] font-medium text-[#476558] ml-1 text-left w-full">
+                  Verification code
+                </label>
+                <input
+                  id="input-otp"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={8}
+                  placeholder="000000"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/[^\d\s]/g, ''))}
+                  className="w-full rounded-xl py-3 px-4 border text-[20px] tracking-[0.35em] text-center outline-none transition-all placeholder:text-[#dbc1b3] placeholder:tracking-normal"
+                  style={inputStyle}
+                />
+                <button
+                  id="btn-verify-otp"
+                  type="submit"
+                  disabled={verifyOtpLoading}
+                  className="w-full py-3 rounded-full text-[15px] font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
                   style={{ background: '#974900', fontFamily: 'Outfit, sans-serif' }}
                 >
-                  <span>Open {webmailInfo.providerName}</span>
-                  <span className="material-symbols-outlined text-[18px]">open_in_new</span>
-                </a>
-
-                {/* Mailto link */}
-                <a
-                  href={webmailInfo.mailtoUrl}
-                  className="text-[13px] text-[#887366] hover:text-[#974900] underline underline-offset-2 transition-colors"
-                >
-                  Open in desktop email client ↗
-                </a>
-              </div>
-
-              <div className="w-full h-px" style={{ background: 'rgba(219,193,179,0.5)' }} />
-
-              {/* Check Verification & Resend options */}
-              <div className="w-full flex flex-col gap-2.5">
-                <button
-                  id="btn-check-verified"
-                  onClick={handleManualCheckVerification}
-                  disabled={checkingStatus}
-                  className="w-full py-2.5 rounded-full border border-[#dbc1b3] text-[14px] font-medium text-[#1d1b18] hover:bg-[#f8f3ed] transition-all flex items-center justify-center gap-2"
-                >
-                  {checkingStatus ? (
-                    <>
-                      <span className="material-symbols-outlined text-[16px]" style={{ animation: 'spin 1s linear infinite' }}>
-                        progress_activity
-                      </span>
-                      Checking status…
-                    </>
-                  ) : (
-                    <>
-                      <span>I've confirmed my email</span>
-                      <span className="material-symbols-outlined text-[18px] text-[#974900]">arrow_forward</span>
-                    </>
-                  )}
+                  {verifyOtpLoading ? 'Verifying…' : 'Verify email →'}
                 </button>
+              </form>
 
-                <div className="flex items-center justify-between text-[13px] px-1 text-[#554338]">
-                  <span>Didn't get the email?</span>
-                  <button
-                    id="btn-resend"
-                    onClick={handleResendEmail}
-                    disabled={resendLoading}
-                    className="text-[#974900] font-semibold hover:underline disabled:opacity-50"
-                  >
-                    {resendLoading ? 'Resending…' : 'Resend link'}
-                  </button>
-                </div>
+              <a
+                id="btn-open-webmail"
+                href={webmailInfo.webmailUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[13px] text-[#887366] hover:text-[#974900] underline underline-offset-2"
+              >
+                Open {webmailInfo.providerName} ↗
+              </a>
+
+              <div className="flex items-center justify-between text-[13px] px-1 text-[#554338] w-full">
+                <span>Didn&apos;t get the email?</span>
+                <button
+                  id="btn-resend"
+                  type="button"
+                  onClick={handleResendEmail}
+                  disabled={resendLoading}
+                  className="text-[#974900] font-semibold hover:underline disabled:opacity-50"
+                >
+                  {resendLoading ? 'Resending…' : 'Resend code'}
+                </button>
               </div>
 
               {/* Return link */}
               <button
                 onClick={() => {
                   setVerificationPending(false)
+                  setOtpCode('')
                   setError(null)
                 }}
                 className="text-[13px] text-[#887366] hover:text-[#1d1b18] transition-colors mt-2"
@@ -434,6 +391,8 @@ function JoinContent() {
               {/* Google button */}
               <button
                 id="btn-google"
+                type="button"
+                onClick={handleGoogleSignIn}
                 className="flex items-center justify-center gap-4 w-full py-3 px-6 rounded-full border border-[#dbc1b3] hover:bg-[#f8f3ed] transition-all active:scale-[0.98]"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">

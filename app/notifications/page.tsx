@@ -190,9 +190,40 @@ export default function NotificationsCenterPage() {
       <div className="flex-1 flex justify-center">
         <AppSidebar />
 
-        <main className="flex-1 max-w-[880px] px-4 pt-6 pb-32 space-y-6 mx-auto">
-          {/* Breadcrumb & Preferences Bar */}
-          <div className="flex items-center justify-between gap-4 text-xs font-bold text-[#727974]">
+        <main className="flex-1 max-w-[880px] px-4 pt-4 md:pt-6 pb-32 space-y-6 mx-auto">
+          <header className="flex md:hidden items-center justify-between gap-2">
+            <div className="flex items-center gap-1 min-w-0">
+              <Link href="/feed" className="w-11 h-11 flex items-center justify-center text-[#011E14] shrink-0">
+                <span className="material-symbols-outlined text-[22px]">arrow_back</span>
+              </Link>
+              <h1 className="text-[24px] font-bold text-[#011E14] truncate" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                Notifications
+              </h1>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={handleMarkAllRead}
+                disabled={unreadCount === 0}
+                className="w-11 h-11 flex items-center justify-center text-[#476457] disabled:opacity-40"
+                aria-label="Mark all as read"
+              >
+                <span className="material-symbols-outlined text-[22px]">done_all</span>
+              </button>
+              <Link href="/notifications/settings" className="w-11 h-11 flex items-center justify-center text-[#011E14]" aria-label="Notification settings">
+                <span className="material-symbols-outlined text-[22px]">settings</span>
+              </Link>
+            </div>
+          </header>
+
+          {unreadCount > 0 && (
+            <div className="md:hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#EDE8E1]">
+              <span className="w-2 h-2 rounded-full bg-[#E8843A]" />
+              <span className="text-xs font-bold text-[#E8843A]">{unreadCount} New</span>
+            </div>
+          )}
+
+          <div className="hidden md:flex items-center justify-between gap-4 text-xs font-bold text-[#727974]">
             <div className="flex items-center gap-1.5">
               <Link href="/feed" className="flex items-center gap-1 hover:text-[#011E14] transition-colors">
                 <span className="material-symbols-outlined text-[16px]">home</span>
@@ -214,7 +245,7 @@ export default function NotificationsCenterPage() {
           </div>
 
           {/* Page Title & Global Actions */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <h1
                 className="text-[28px] sm:text-[32px] font-bold text-[#011E14] tracking-tight"

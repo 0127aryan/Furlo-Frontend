@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/store/useAuthStore'
+import { clearSessionTokens, getSessionTokens, saveSessionTokens } from '@/lib/session'
 import { toast } from '@/lib/toast'
 
 // All requests go to /api/backend/* which is proxied to the Express backend via next.config.ts
@@ -21,6 +22,10 @@ export async function apiFetch<T = any>(
   if (options.json && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
+  const tokens = getSessionTokens()
+  if (tokens?.access_token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${tokens.access_token}`)
+  }
 
   const fetchOptions: RequestInit = {
     ...options,
@@ -37,7 +42,16 @@ export async function apiFetch<T = any>(
   if (response.status === 401) {
     if (typeof window !== 'undefined') {
       const hadUser = Boolean(useAuthStore.getState().user)
-      useAuthStore.getState().clearAuth()
+      const pathname = window.location.pathname
+      const isSessionProbe = path.includes('/auth/me') || path.includes('/auth/logout')
+      const onboarding = pathname.startsWith('/join')
+      if (isSessionProbe || onboarding) {
+        useAuthStore.getState().setUser(null)
+        useAuthStore.getState().setActivePet(null)
+      } else {
+        useAuthStore.getState().clearAuth()
+        clearSessionTokens()
+      }
 
       // Skip toast for background session checks (like /auth/me) or if user was already logged out
       if (hadUser && !path.includes('/auth/me') && !path.includes('/auth/logout')) {
@@ -97,7 +111,11 @@ export async function apiFetch<T = any>(
 
   const contentType = response.headers.get('Content-Type')
   if (contentType && contentType.includes('application/json')) {
-    return response.json() as Promise<T>
+    const data = (await response.json()) as T & { session?: { access_token?: string; refresh_token?: string } }
+    if (data && typeof data === 'object' && data.session?.access_token) {
+      saveSessionTokens(data.session)
+    }
+    return data
   }
 
   return (await response.text()) as unknown as T

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { ListRowsSkeleton, ProfileSkeleton } from '@/components/skeletons'
 import { AppSidebar } from '@/components/feed/AppSidebar'
@@ -19,7 +19,10 @@ import { subscribePetBadges } from '@/lib/subscribePetBadges'
 import { apiFetch } from '@/lib/api'
 import { appendUniqueById, PAGE_SIZE } from '@/lib/pagination'
 import { toast } from '@/lib/toast'
+import { formatPetDateOfBirth } from '@/lib/formatPetDateOfBirth'
 import { getPetSpecies, getPostVerb, getPostVerbPlural } from '@/lib/petVerbMap'
+import { isOwnProfilePath } from '@/lib/mobileNav'
+import { ProfileMenuSheet } from '@/components/nav/ProfileMenuSheet'
 
 interface PetProfile {
   id: string
@@ -29,6 +32,7 @@ interface PetProfile {
   pet_type?: string
   city: string
   gender?: string
+  date_of_birth?: string | null
   bio?: string
   personality_tags?: string[]
   profile_image_url?: string
@@ -44,6 +48,7 @@ interface PetProfile {
 
 export default function PetProfilePage() {
   const params = useParams()
+  const pathname = usePathname() || ''
   const petId = (params?.id || params?.username) as string
 
   const { activePet, user } = useAuthStore()
@@ -71,6 +76,8 @@ export default function PetProfilePage() {
   const [packMembersList, setPackMembersList] = useState<any[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [reportingPostId, setReportingPostId] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const isOwnRoute = isOwnProfilePath(pathname, activePet, user?.id)
   const [dbStats, setDbStats] = useState({
     barksCount: 0,
     packMembersCount: 0,
@@ -412,11 +419,25 @@ export default function PetProfilePage() {
 
       <main className="flex-1 max-w-[800px] px-4 md:px-8 pt-4 pb-24 mx-auto w-full flex flex-col gap-6">
         {/* Mobile Header */}
-        <header className="flex md:hidden items-center justify-between py-2 border-b border-[#EDE8E1]">
-          <Link href="/feed" className="flex items-center gap-1 text-[#011E14] font-bold text-[14px]">
-            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-            <span>Back to Yard</span>
-          </Link>
+        <header className="flex md:hidden items-center justify-between py-1 border-b border-[#EDE8E1]">
+          <div className="flex items-center gap-1 min-w-0">
+            <Link href="/feed" className="w-11 h-11 flex items-center justify-center text-[#011E14] shrink-0">
+              <span className="material-symbols-outlined text-[22px]">arrow_back</span>
+            </Link>
+            {isOwnRoute && (
+              <span className="text-[20px] font-bold text-[#011E14] truncate" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                My Paw Print
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="w-11 h-11 flex items-center justify-center text-[#011E14]"
+            aria-label="Open menu"
+          >
+            <span className="material-symbols-outlined text-[24px]">menu</span>
+          </button>
         </header>
 
         {loading ? (
@@ -437,7 +458,7 @@ export default function PetProfilePage() {
         ) : (
           <div className="flex flex-col gap-6">
             {/* Cover Banner */}
-            <div className="w-full h-52 md:h-72 rounded-3xl relative overflow-hidden bg-gradient-to-r from-[#163328] via-[#2d4a3e] to-[#E8843A] shadow-sm">
+            <div className="w-full h-[168px] md:h-72 rounded-none md:rounded-3xl -mx-4 md:mx-0 relative overflow-hidden bg-gradient-to-r from-[#163328] via-[#2d4a3e] to-[#E8843A] shadow-sm">
               <div className="absolute inset-0 bg-black/10" />
             </div>
 
@@ -446,7 +467,7 @@ export default function PetProfilePage() {
               {/* Avatar & Action Row */}
               <div className="flex items-end justify-between mb-4">
                 <div className="relative">
-                  <div className="w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-[#FEF9F3] overflow-hidden shadow-lg bg-white">
+                  <div className="w-[104px] h-[104px] md:w-36 md:h-36 rounded-full border-4 border-[#FEF9F3] overflow-hidden shadow-lg bg-white">
                     {pet.profile_image_url ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
@@ -691,6 +712,12 @@ export default function PetProfilePage() {
                       <p className="text-[#727974] text-[12px]">Gender</p>
                       <p className="font-bold text-[#011E14] capitalize">{pet.gender || 'Unknown'}</p>
                     </div>
+                    <div>
+                      <p className="text-[#727974] text-[12px]">Date of Birth</p>
+                      <p className="font-bold text-[#011E14]">
+                        {pet.date_of_birth ? formatPetDateOfBirth(pet.date_of_birth) : '—'}
+                      </p>
+                    </div>
                     {pet.users && (
                       <div>
                         <p className="text-[#727974] text-[12px]">Pet Parent</p>
@@ -900,6 +927,7 @@ export default function PetProfilePage() {
           </div>
         </div>
       )}
+      <ProfileMenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} />
     </div>
   )
 }

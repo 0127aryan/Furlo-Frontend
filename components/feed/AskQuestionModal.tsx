@@ -120,11 +120,14 @@ export function AskQuestionModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+    <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-[rgba(1,30,20,0.45)] animate-fadeIn">
       <div
-        className="bg-white w-full max-w-[580px] rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden border border-[#EDE8E1]"
+        className="bg-white w-full max-w-[580px] rounded-t-[28px] md:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden border border-[#EDE8E1]"
         style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
       >
+        <div className="md:hidden flex justify-center pt-2">
+          <div className="w-10 h-1.5 rounded-full bg-[#EDE8E1]" />
+        </div>
         {/* Header */}
         <header className="px-7 py-5 border-b border-[#EDE8E1] flex items-center justify-between">
           <h2 className="text-[20px] font-extrabold text-[#011E14] flex items-center gap-2" style={{ fontFamily: 'Outfit, sans-serif' }}>

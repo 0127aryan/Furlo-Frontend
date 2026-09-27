@@ -261,17 +261,18 @@ export function PostCard({ post, onReport, onDelete, isOwner, onPatch }: PostCar
       style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
     >
       {/* Header */}
-      <div className="p-4 flex items-center justify-between relative z-10">
+      <div className="p-4 flex flex-col gap-2.5 relative z-10">
+        <div className="flex items-start justify-between gap-2">
         <Link
           href={post.pets?.username ? `/pet/${post.pets.username}` : post.pets?.id ? `/pet/${post.pets.id}` : '#'}
-          className="flex items-center gap-3 group/author hover:opacity-90 transition-opacity"
+          className="flex items-center gap-3 min-w-0 flex-1 group/author hover:opacity-90 transition-opacity"
         >
           {authorAvatar ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={authorAvatar}
               alt={authorName}
-              className="w-10 h-10 rounded-full object-cover border border-[#ede8e1]"
+              className="w-10 h-10 rounded-full object-cover border border-[#ede8e1] shrink-0"
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-[#f8f3ed] flex items-center justify-center border border-[#ede8e1] shrink-0">
@@ -280,22 +281,22 @@ export function PostCard({ post, onReport, onDelete, isOwner, onPatch }: PostCar
               </span>
             </div>
           )}
-          <div>
-            <div className="flex items-center gap-1">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
               <h4
-                className="font-bold text-[16px] text-[#163328] group-hover/author:text-[#E8843A] transition-colors leading-tight"
+                className="font-bold text-[16px] text-[#163328] group-hover/author:text-[#E8843A] transition-colors leading-tight min-w-0 max-w-full truncate"
                 style={{ fontFamily: "Outfit, sans-serif" }}
               >
                 {authorName}
               </h4>
               {post.pets?.is_founding_pet && (
-                <span className="text-[14px] leading-none" title="Founding Pet 👑">
+                <span className="text-[14px] leading-none shrink-0" title="Founding Pet 👑">
                   👑
                 </span>
               )}
               {post.pets?.is_verified && (
                 <span
-                  className="material-symbols-outlined text-[#15803D] text-[15px]"
+                  className="material-symbols-outlined text-[#15803D] text-[15px] shrink-0"
                   style={{ fontVariationSettings: "'FILL' 1" }}
                   title="Verified Paw"
                 >
@@ -303,41 +304,19 @@ export function PostCard({ post, onReport, onDelete, isOwner, onPatch }: PostCar
                 </span>
               )}
               {communityName && (
-                <span className="text-[12px] text-[#887366] font-medium ml-1">
+                <span className="text-[12px] text-[#887366] font-medium min-w-0 truncate">
                   in <strong className="text-[#2d4a3e]">{communityName}</strong>
                 </span>
               )}
             </div>
-            <p className="text-[12px] text-[#887366]">
+            <p className="text-[12px] text-[#887366] truncate">
               {authorHandle} • {formatTime(post.created_at)}
             </p>
           </div>
         </Link>
 
-        {/* Q&A Badges */}
-        {post.post_type === "question" && (
-          <div className="flex items-center gap-2 ml-auto mr-2">
-            {post.topic_category && (
-              <span className="hidden sm:inline-flex items-center gap-1 bg-[#F8F3ED] text-[#163328] px-2.5 py-0.5 rounded-full text-[11px] font-bold">
-                🐾 {post.topic_category}
-              </span>
-            )}
-            {post.is_solved ? (
-              <span className="bg-[#E4F5EB] text-[#1E7745] font-bold text-[12px] px-3 py-1 rounded-full flex items-center gap-1">
-                <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                <span>Solved</span>
-              </span>
-            ) : (
-              <span className="bg-[#FFDBC7] text-[#974900] font-bold text-[12px] px-3 py-1 rounded-full flex items-center gap-1">
-                <span>Question</span>
-                <span className="font-bold text-[13px]">?</span>
-              </span>
-            )}
-          </div>
-        )}
-
         {/* 3-dots Menu */}
-        <div className="relative" onClick={(e) => e.stopPropagation()}>
+        <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={() => setShowMenu(!showMenu)}
             className="text-[#887366] hover:bg-[#f6f9ff] p-1.5 rounded-full transition-colors"
@@ -393,6 +372,28 @@ export function PostCard({ post, onReport, onDelete, isOwner, onPatch }: PostCar
             </>
           )}
         </div>
+        </div>
+
+        {post.post_type === "question" && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {post.topic_category && (
+              <span className="inline-flex items-center gap-1 max-w-full bg-[#F8F3ED] text-[#163328] px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                <span className="truncate">🐾 {post.topic_category}</span>
+              </span>
+            )}
+            {post.is_solved ? (
+              <span className="shrink-0 bg-[#E4F5EB] text-[#1E7745] font-bold text-[12px] px-3 py-1 rounded-full flex items-center gap-1">
+                <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                <span>Solved</span>
+              </span>
+            ) : (
+              <span className="shrink-0 bg-[#FFDBC7] text-[#974900] font-bold text-[12px] px-3 py-1 rounded-full flex items-center gap-1">
+                <span>Question</span>
+                <span className="font-bold text-[13px]">?</span>
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Media Carousel (Instagram-style Adaptive Sizing) */}

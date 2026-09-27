@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { apiFetch } from '@/lib/api'
+import { todayIsoDate } from '@/lib/formatPetDateOfBirth'
 import { useAuthStore, Pet } from '@/store/useAuthStore'
 
 interface EditPetProfileModalProps {
@@ -14,6 +15,7 @@ interface EditPetProfileModalProps {
     breed: string
     city: string
     bio?: string
+    date_of_birth?: string | null
     profile_image_url?: string
     personality_tags?: string[]
   }
@@ -37,6 +39,7 @@ export function EditPetProfileModal({
   const [avatarData, setAvatarData] = useState<string | null>(null)
   const [removeAvatar, setRemoveAvatar] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string>(pet.profile_image_url || '')
+  const [dateOfBirth, setDateOfBirth] = useState(pet.date_of_birth || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -88,6 +91,7 @@ export function EditPetProfileModal({
           city,
           bio,
           personalityTags,
+          dateOfBirth: dateOfBirth || null,
           ...(removeAvatar
             ? { removeAvatar: true, avatarData: '' }
             : avatarData
@@ -236,6 +240,30 @@ export function EditPetProfileModal({
                   className="w-full bg-white border border-[#EDE8E1] rounded-full px-4 py-2 text-[#011E14] focus:outline-none focus:border-[#2D4A3E]"
                   required
                 />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[12px] font-bold text-[#424844] mb-1">
+                Date of birth <span className="font-normal text-[#727974]">(optional)</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  max={todayIsoDate()}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  className="flex-1 bg-white border border-[#EDE8E1] rounded-full px-4 py-2 text-[#011E14] focus:outline-none focus:border-[#2D4A3E]"
+                />
+                {dateOfBirth ? (
+                  <button
+                    type="button"
+                    onClick={() => setDateOfBirth('')}
+                    className="text-[13px] font-semibold text-[#E8843A] shrink-0"
+                  >
+                    Clear
+                  </button>
+                ) : null}
               </div>
             </div>
 

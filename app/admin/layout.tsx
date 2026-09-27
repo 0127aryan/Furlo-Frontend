@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
 import { apiFetch } from '@/lib/api'
 import { subscribeModerationQueue } from '@/lib/subscribeModerationQueue'
+import { AdminDrawer } from '@/components/admin/AdminDrawer'
 
 interface AdminStatsSummary {
   pendingApprovals: number
@@ -19,6 +20,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const [authorized, setAuthorized] = useState<boolean | null>(null)
   const [stats, setStats] = useState<AdminStatsSummary>({ pendingApprovals: 0, openReports: 0 })
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
+  useEffect(() => {
+    setDrawerOpen(false)
+  }, [pathname])
 
   const refreshStats = async () => {
     try {
@@ -147,7 +153,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
     >
       {/* Admin Left Sidebar */}
-      <aside className="w-[280px] bg-[#011E14] text-white flex flex-col shrink-0 border-r border-[#163328] min-h-screen sticky top-0 h-screen">
+      <aside className="w-[280px] bg-[#011E14] text-white hidden md:flex flex-col shrink-0 border-r border-[#163328] min-h-screen sticky top-0 h-screen">
         {/* Logo & Header */}
         <div className="p-6 border-b border-[#163328] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -240,8 +246,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-        {/* Top Header Bar */}
-        <header className="h-16 bg-white border-b border-[#EDE8E1] px-8 flex items-center justify-between sticky top-0 z-30 shadow-2xs">
+        <header className="md:hidden sticky top-0 z-30 bg-white border-b border-[#EDE8E1] px-3 min-h-[52px] flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className="w-11 h-11 flex items-center justify-center text-[#011E14]"
+            aria-label="Open admin menu"
+          >
+            <span className="material-symbols-outlined text-[22px]">menu</span>
+          </button>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#727974]">Super Admin Operations Center</p>
+            <p className="text-[16px] font-bold text-[#011E14] capitalize truncate" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              {pathname === '/admin' ? 'Overview' : pathname.split('/admin/')[1]?.replace(/-/g, ' ')}
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E4F5EB] text-[#166534] text-[11px] font-bold">
+            <span className="w-2 h-2 rounded-full bg-[#16803D]" />
+            Live
+          </div>
+        </header>
+
+        <header className="hidden md:flex h-16 bg-white border-b border-[#EDE8E1] px-8 items-center justify-between sticky top-0 z-30 shadow-2xs">
           <div className="flex items-center gap-2 text-xs font-bold text-[#727974]">
             <span className="material-symbols-outlined text-[18px]">shield</span>
             <span>Super Admin Operations Center</span>
@@ -260,8 +286,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Children Pages */}
-        <main className="flex-1 p-8 max-w-[1400px] w-full mx-auto">{children}</main>
+        <main className="flex-1 p-4 md:p-8 max-w-[1400px] w-full mx-auto min-w-0">{children}</main>
       </div>
+      <AdminDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        items={navItems}
+        name={user?.name}
+        email={user?.email}
+      />
     </div>
   )
 }

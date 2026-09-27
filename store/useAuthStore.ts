@@ -22,12 +22,16 @@ export interface Pet {
   species?: string
   is_verified?: boolean
   is_founding_pet?: boolean
+  date_of_birth?: string | null
 }
 
 export interface OnboardingData {
   role: 'parent' | 'lover' | null
   email?: string
   password?: string
+  parentName?: string
+  termsAccepted?: boolean
+  marketingOptIn?: boolean
   petName?: string
   petUsername?: string
   petType?: string
@@ -37,6 +41,7 @@ export interface OnboardingData {
   customBreed?: string
   city?: string
   gender?: 'male' | 'female' | 'unknown'
+  dateOfBirth?: string
   bio?: string
   personalityTags?: string[]
   customPersonalityTags?: string[]
@@ -87,6 +92,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   clearAuth: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('furlo_onboarding_data')
+      sessionStorage.removeItem('furlo_session_tokens')
     }
     set({ user: null, activePet: null, onboardingData: null })
   },

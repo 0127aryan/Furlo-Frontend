@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { PackListSkeleton } from '@/components/skeletons'
 import { useAuthStore } from '@/store/useAuthStore'
 import { apiFetch } from '@/lib/api'
+import { ensureSession } from '@/lib/ensureSession'
 
 interface Pack {
   id: string
@@ -92,21 +93,36 @@ export default function JoinPacksPage() {
 
   const [error, setError] = useState<string | null>(null)
 
+  const goToFeed = async () => {
+    useAuthStore.getState().setOnboardingData(null)
+    setShowSuccess(true)
+    await new Promise((r) => setTimeout(r, 1600))
+    router.push('/feed')
+  }
+
   const finishOnboarding = async (packs: string[]) => {
     setCompleting(true)
     setError(null)
 
     try {
-      const data = onboardingData
+      const meData = await ensureSession()
+      if (meData?.activePet) {
+        await goToFeed()
+        return
+      }
+
+      const data = useAuthStore.getState().onboardingData || onboardingData
       const role = data?.role || 'parent'
       const petName = data?.petName || (role === 'lover' ? 'Pet Lover' : 'My Companion')
       const city = data?.city || 'Bangalore'
 
-      // Submit the full onboarding data to backend database
       await apiFetch('/auth/complete-onboarding', {
         method: 'POST',
         json: {
           role,
+          parentName: (data?.parentName || '').trim(),
+          termsAccepted: true,
+          marketingOptIn: data?.marketingOptIn ?? false,
           petName,
           petUsername: data?.petUsername,
           petType: role === 'lover' ? 'lover' : (data?.petType || 'dogs'),
@@ -115,6 +131,7 @@ export default function JoinPacksPage() {
           customBreed: data?.customBreed,
           city,
           gender: data?.gender || 'unknown',
+          dateOfBirth: data?.dateOfBirth,
           bio: data?.bio || '',
           personalityTags: data?.personalityTags || [],
           customPersonalityTags: data?.customPersonalityTags || [],
@@ -123,26 +140,30 @@ export default function JoinPacksPage() {
         },
       })
 
-      // Fetch fresh user & pet profile from backend
       try {
-        const meData = await apiFetch('/auth/me')
-        if (meData && meData.user) {
-          useAuthStore.getState().setUser(meData.user)
-          useAuthStore.getState().setActivePet(meData.activePet)
+        const fresh = await apiFetch('/auth/me')
+        if (fresh?.user) {
+          useAuthStore.getState().setUser(fresh.user)
+          useAuthStore.getState().setActivePet(fresh.activePet)
         }
       } catch (meErr) {
         console.warn('[packs] Could not fetch fresh me context:', meErr)
       }
 
-      // Clear saved onboarding input state
-      useAuthStore.getState().setOnboardingData(null)
-
-      // Show success overlay
-      setShowSuccess(true)
-      await new Promise((r) => setTimeout(r, 2000))
-      router.push('/feed')
+      await goToFeed()
     } catch (err: any) {
       console.error('Onboarding complete error:', err)
+      try {
+        const fallback = await apiFetch('/auth/me')
+        if (fallback?.activePet) {
+          useAuthStore.getState().setUser(fallback.user)
+          useAuthStore.getState().setActivePet(fallback.activePet)
+          await goToFeed()
+          return
+        }
+      } catch {
+        // Stay on this page and show the error.
+      }
       setError(err.message || 'Failed to save profile to database. Please try again.')
       setCompleting(false)
     }
@@ -397,12 +418,8 @@ export default function JoinPacksPage() {
             </div>
           </div>
 
-          {/* Legal note */}
-          <p
-            className="text-center mt-6 text-[12px] leading-relaxed px-8"
-            style={{ color: '#887366' }}
-          >
-            By completing your setup, you agree to our Pack Guidelines and Privacy Policy. Your Paw Print will be visible to members of the packs you join.
+          <p className="text-center mt-6 text-[12px] leading-relaxed px-8" style={{ color: '#887366' }}>
+            Your Paw Print will be visible to members of the packs you join.
           </p>
         </div>
       </main>

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { apiFetch } from '@/lib/api'
+import { saveSessionTokens } from '@/lib/session'
 import { useAuthStore } from '@/store/useAuthStore'
 
 function AuthCallbackContent() {
@@ -28,11 +29,23 @@ function AuthCallbackContent() {
           throw new Error(errorDescription || errorParam || 'Email verification link is invalid or expired.')
         }
 
+        // Mobile OAuth used HTTPS redirect — bounce into the native app with the auth code.
+        if (code && searchParams.get('client') === 'mobile') {
+          const qs = new URLSearchParams({ code })
+          const state = searchParams.get('state')
+          if (state) qs.set('state', state)
+          window.location.replace(`furlo://auth/callback?${qs.toString()}`)
+          return
+        }
+
         // 1. If code or token_hash parameter is present, call backend callback or check session
         if (code || tokenHash) {
+          const oauthState = searchParams.get('state')
           const endpoint = tokenHash && type
             ? `/auth/callback?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(type)}`
-            : `/auth/callback?code=${encodeURIComponent(code || '')}`
+            : `/auth/callback?code=${encodeURIComponent(code || '')}${
+                oauthState ? `&state=${encodeURIComponent(oauthState)}` : ''
+              }`
 
           const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || '/api/backend'
           window.location.href = `${apiBaseUrl}${endpoint}`
@@ -50,6 +63,7 @@ function AuthCallbackContent() {
               method: 'POST',
               json: { access_token: accessToken, refresh_token: refreshToken },
             })
+            saveSessionTokens({ access_token: accessToken, refresh_token: refreshToken || undefined })
 
             if (res.context) {
               setUser(res.context.user)
@@ -158,7 +172,7 @@ function AuthCallbackContent() {
             </div>
             <div>
               <h1 className="text-[22px] font-bold text-[#1d1b18]" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                Verifying your email…
+                Signing you in…
               </h1>
               <p className="text-[14px] text-[#554338] mt-1">
                 Hold tight while we get your Paw Print ready 🐾
